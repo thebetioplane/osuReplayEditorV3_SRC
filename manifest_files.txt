@@ -1,0 +1,15 @@
+assets
+
+assets/approachcircle.raw
+assets/cursor.raw
+assets/hitcircle.raw
+assets/markerA.raw
+assets/markerB.raw
+assets/sliderbody.raw
+assets/slideredge.raw
+assets/slidertick.raw
+assets/vertex.raw
+ReplayEditor.dll
+bass.dll
+bass_fx.dll
+osuReplayEditor.exe
