@@ -296,7 +296,7 @@ namespace osuReplayEditor
         public static extern bool Replay_GetFullCombo();
 
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern int Replay_GetMods();
+        public static extern uint Replay_GetMods();
 
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
         public static extern void Replay_SetGamemode(byte value);
@@ -338,7 +338,7 @@ namespace osuReplayEditor
         public static extern void Replay_SetFullCombo(bool value);
 
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern void Replay_SetMods(int value);
+        public static extern void Replay_SetMods(uint value);
 
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
         public static extern void ResetPanZoom();

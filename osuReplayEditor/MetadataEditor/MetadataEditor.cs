@@ -5,34 +5,38 @@ namespace osuReplayEditor.MetadataEditor
 {
     public partial class MetadataEditorForm : Form
     {
-        private const int ModNoFail = 1;
-        private const int ModEasy = 2;
-        private const int ModTouchDevice = 4;
-        private const int ModHidden = 8;
-        private const int ModHardRock = 16;
-        private const int ModSuddenDeath = 32;
-        private const int ModDoubleTime = 64;
-        private const int ModRelax = 128;
-        private const int ModHalfTime = 256;
-        private const int ModNightcore = 512;
-        private const int ModFlashlight = 1024;
-        private const int ModAutoplay = 2048;
-        private const int ModSpunOut = 4096;
-        private const int ModAutopilot = 8192;
-        private const int ModPerfect = 16384;
-        private const int ModKey4 = 32768;
-        private const int ModKey5 = 65536;
-        private const int ModKey6 = 131072;
-        private const int ModKey7 = 262144;
-        private const int ModKey8 = 524288;
-        private const int ModFadeIn = 1048576;
-        private const int ModRandom = 2097152;
-        private const int ModCinema = 4194304;
-        private const int ModKey9 = 16777216;
-        private const int ModCoop = 33554432;
-        private const int ModKey1 = 67108864;
-        private const int ModKey3 = 134217728;
-        private const int ModKey2 = 268435456;
+        private const uint ModNoFail = 1;
+        private const uint ModEasy = 2;
+        private const uint ModTouchDevice = 4;
+        private const uint ModHidden = 8;
+        private const uint ModHardRock = 16;
+        private const uint ModSuddenDeath = 32;
+        private const uint ModDoubleTime = 64;
+        private const uint ModRelax = 128;
+        private const uint ModHalfTime = 256;
+        private const uint ModNightcore = 512;
+        private const uint ModFlashlight = 1024;
+        private const uint ModAutoplay = 2048;
+        private const uint ModSpunOut = 4096;
+        private const uint ModAutopilot = 8192;
+        private const uint ModPerfect = 16384;
+        private const uint ModKey4 = 32768;
+        private const uint ModKey5 = 65536;
+        private const uint ModKey6 = 131072;
+        private const uint ModKey7 = 262144;
+        private const uint ModKey8 = 524288;
+        private const uint ModFadeIn = 1048576;
+        private const uint ModRandom = 2097152;
+        private const uint ModCinema = 4194304;
+        private const uint ModTargetPractice = 8388608;
+        private const uint ModKey9 = 16777216;
+        private const uint ModCoop = 33554432;
+        private const uint ModKey1 = 67108864;
+        private const uint ModKey3 = 134217728;
+        private const uint ModKey2 = 268435456;
+        private const uint ModScoreV2 = 536870912;
+        private const uint ModMirror = 1073741824;
+        private const uint Mod31 = 2147483648;
 
         public MetadataEditorForm()
         {
@@ -96,7 +100,7 @@ namespace osuReplayEditor.MetadataEditor
                 radioButtonFCYes.Checked = true;
             else
                 radioButtonFCNo.Checked = true;
-            int mods = API.Replay_GetMods();
+            uint mods = API.Replay_GetMods();
             checkBoxNoFail.Checked = getMod(mods, ModNoFail);
             IsEasy = getMod(mods, ModEasy);
             checkBoxEasy.Checked = IsEasy;
@@ -127,6 +131,10 @@ namespace osuReplayEditor.MetadataEditor
             checkBoxRandom.Checked = getMod(mods, ModRandom);
             checkBoxCinema.Checked = getMod(mods, ModCinema);
             checkBoxCoop.Checked = getMod(mods, ModCoop);
+            checkBoxTargetPractice.Checked = getMod(mods, ModTargetPractice);
+            checkBoxScoreV2.Checked = getMod(mods, ModScoreV2);
+            checkBoxMirror.Checked = getMod(mods, ModMirror);
+            checkBoxMod31.Checked = getMod(mods, Mod31);
         }
 
         public void ToAPI()
@@ -151,7 +159,7 @@ namespace osuReplayEditor.MetadataEditor
             API.Replay_SetNumMiss(numMissTextBox.Value);
             API.Replay_SetMaxCombo(maxComboTextBox.Value);
             API.Replay_SetFullCombo(radioButtonFCYes.Checked);
-            int mods = 0;
+            uint mods = 0;
             setMod(ref mods, ModNoFail, checkBoxNoFail.Checked);
             setMod(ref mods, ModEasy, checkBoxEasy.Checked);
             setMod(ref mods, ModTouchDevice, checkBoxTouchDevice.Checked);
@@ -180,6 +188,10 @@ namespace osuReplayEditor.MetadataEditor
             setMod(ref mods, ModRandom, checkBoxRandom.Checked);
             setMod(ref mods, ModCinema, checkBoxCinema.Checked);
             setMod(ref mods, ModCoop, checkBoxCoop.Checked);
+            setMod(ref mods, ModTargetPractice, checkBoxTargetPractice.Checked);
+            setMod(ref mods, ModScoreV2, checkBoxScoreV2.Checked);
+            setMod(ref mods, ModMirror, checkBoxMirror.Checked);
+            setMod(ref mods, Mod31, checkBoxMod31.Checked);
             API.Replay_SetMods(mods);
         }
 
@@ -191,7 +203,7 @@ namespace osuReplayEditor.MetadataEditor
             return System.Text.Encoding.ASCII.GetString(buf, 0, len);
         }
 
-        private void setMod(ref int mods, int mod, bool value)
+        private void setMod(ref uint mods, uint mod, bool value)
         {
             if (value)
                 mods |= mod;
@@ -199,7 +211,7 @@ namespace osuReplayEditor.MetadataEditor
                 mods &= ~mod;
         }
 
-        private static bool getMod(int mods, int mod)
+        private static bool getMod(uint mods, uint mod)
         {
             return (mods & mod) != 0;
         }

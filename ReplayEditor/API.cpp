@@ -515,7 +515,7 @@ DLLFUN(BOOL) Replay_GetFullCombo()
 	return replayengine::full_combo ? TRUE : FALSE;
 }
 
-DLLFUN(INT32) Replay_GetMods()
+DLLFUN(UINT32) Replay_GetMods()
 {
 	return replayengine::mods;
 }
@@ -585,7 +585,7 @@ DLLFUN(void) Replay_SetFullCombo(BOOL value)
 	replayengine::full_combo = value;
 }
 
-DLLFUN(void) Replay_SetMods(INT32 value)
+DLLFUN(void) Replay_SetMods(UINT32 value)
 {
 	replayengine::mods = value;
 }
