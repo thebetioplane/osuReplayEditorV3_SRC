@@ -16,15 +16,14 @@ namespace Builder
 
         static Program()
         {
-            string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
-            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            MSBUILD_PATH = programFiles + @"\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe";
-            SLN_DIR = userProfile + @"\source\repos\ReplayEditor\";
+            string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            MSBUILD_PATH = programFiles + @"\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe";
+            SLN_DIR = Environment.CurrentDirectory;
 #if USE_COMPRESSION
             PETITE_PATH = SLN_DIR + @"petite24\petite.exe";
 #endif
-            OUTPUT_DIR = SLN_DIR + @"build_output\";
-            DISTRO_DIR = SLN_DIR + @"distro\";
+            OUTPUT_DIR = Path.Combine(SLN_DIR, "build_output");
+            DISTRO_DIR = Path.Combine(SLN_DIR, "distro");
         }
 
         static int Main(string[] args)

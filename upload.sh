@@ -6,9 +6,12 @@ cp -R distro $WHICH_DIR
 cp -r distro_aux/. $WHICH_DIR
 cd $WHICH_DIR
 git init
+# Change to your own github information / ssh key
+# #######
 git config user.name thebetioplane
 git config user.email thebetioplane@users.noreply.github.com
-git remote add origin git@github.com:thebetioplane/osuReplayEditorV3.git
+git remote add origin github-thebetioplane:thebetioplane/osuReplayEditorV3.git
+# #######
 git add --all
 git commit -m "`date '+%Y-%m-%d [%y%j-%H]'`"
 git tag beta
