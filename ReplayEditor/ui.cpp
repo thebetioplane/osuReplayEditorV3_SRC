@@ -293,19 +293,19 @@ bool ui::is_in_out_mark_consistent()
 static void do_mouse_pan(const glm::vec2 &p)
 {
     glm::vec2 mouse = p;
-    zoom_pan::osu_pixel_to_gl(mouse);
+    zoom_pan.osu_pixel_to_gl(mouse);
     glm::vec2 diff = pan_mouse_start - mouse;
-    zoom_pan::gl_to_osu_pixel_vec(diff);
-    zoom_pan::pan = pan_start + diff;
-    zoom_pan::set_dirty();
+    zoom_pan.gl_to_osu_pixel_vec(diff);
+    zoom_pan.mut_pan() = pan_start + diff;
+    zoom_pan.set_dirty();
 }
 
 void ui::mouse_down_right(const glm::vec2 &p)
 {
     glm::vec2 mouse = p;
-    zoom_pan::osu_pixel_to_gl(mouse);
+    zoom_pan.osu_pixel_to_gl(mouse);
     pan_mouse_start = mouse;
-    pan_start = zoom_pan::pan;
+    pan_start = zoom_pan.pan();
     is_panning = true;
 }
 
@@ -318,8 +318,8 @@ void ui::mouse_up_right(const glm::vec2 &p)
 void ui::mouse_wheel(const glm::vec2 &p, bool is_up)
 {
     constexpr float amt = 5.0;
-    zoom_pan::zoom += is_up ? amt : -amt;
-    zoom_pan::set_dirty();
+    zoom_pan.mut_zoom() += is_up ? amt : -amt;
+    zoom_pan.set_dirty();
 }
 
 void ui::make_undo_restore_point()

@@ -73,6 +73,9 @@ hitobject_t::hitobject_t(const char *def) noexcept
         if (comma_ahead(def, 5)) fatal("bad spinner def");
         if (sscanf_s(def, "%d", &end) != 1) fatal(".osr bad format");
         hitobject_type = HitObjectType::Spinner;
+        if (start >= end) {
+            end = start + 1;
+        }
     } else {
         fatal(".osr bad format");
         end = start;

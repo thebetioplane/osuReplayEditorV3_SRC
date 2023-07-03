@@ -9,10 +9,28 @@
 
 #include "../LZMA/LzmaDec.h"
 #include "breader.hpp"
+#include "zoom_pan.hpp"
 
 #define glTranslate(x, y, z) glTranslatef(static_cast<GLfloat>(x), static_cast<GLfloat>(y), static_cast<GLfloat>(z))
 #define glRotate(r, x, y, z) \
     glRotatef(static_cast<GLfloat>(r), static_cast<GLfloat>(x), static_cast<GLfloat>(y), static_cast<GLfloat>(z))
+
+namespace
+{
+
+bool vec_out_of_bounds(const glm::vec2 &pos)
+{
+    const glm::vec2 p = zoom_pan.projection() * glm::vec4(pos, 0.f, 1.f);
+    constexpr float dim = 1.f;
+    return (p.x < -dim || p.y < -dim || p.x > dim || p.y > dim);
+}
+
+bool rect_out_of_bounds(const glm::vec2 &pos, const glm::vec2 &size)
+{
+    return vec_out_of_bounds(pos) && vec_out_of_bounds(pos + size);
+}
+
+}  // namespace
 
 texture_t::texture_t(int w, int h, void *data, GLint tex_filter) : width(w), height(h)
 {
@@ -53,6 +71,9 @@ texture_t *texture_t::from_file(const std::wstring &path, const int width, const
 void texture_t::draw(glm::vec2 pos, glm::vec2 origin, float rotation) const
 {
     pos -= origin;
+    if (rect_out_of_bounds(pos, glm::vec2(width, height))) {
+        return;
+    }
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     if (rotation != 0) {
@@ -77,6 +98,9 @@ void texture_t::draw(glm::vec2 pos, glm::vec2 origin, float rotation) const
 void texture_t::draw(glm::vec2 pos, glm::vec2 origin, glm::vec2 size, float rotation) const
 {
     pos -= origin;
+    if (rect_out_of_bounds(pos, size)) {
+        return;
+    }
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     if (rotation != 0) {
@@ -101,6 +125,9 @@ void texture_t::draw(glm::vec2 pos, glm::vec2 origin, glm::vec2 size, float rota
 void texture_t::draw(glm::vec2 pos, glm::vec2 origin) const
 {
     pos -= origin;
+    if (rect_out_of_bounds(pos, glm::vec2(width, height))) {
+        return;
+    }
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glBindTexture(GL_TEXTURE_2D, id);
@@ -119,6 +146,9 @@ void texture_t::draw(glm::vec2 pos, glm::vec2 origin) const
 void texture_t::draw(glm::vec2 pos, glm::vec2 origin, glm::vec2 size) const
 {
     pos -= origin;
+    if (rect_out_of_bounds(pos, size)) {
+        return;
+    }
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glBindTexture(GL_TEXTURE_2D, id);

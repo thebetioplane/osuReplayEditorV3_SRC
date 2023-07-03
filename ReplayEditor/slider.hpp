@@ -7,7 +7,10 @@
 
 #include "thirdparty/glm/glm.hpp"
 
-typedef std::pair<glm::vec2, SongTime_t> pos_time_t;
+struct pos_time_t {
+    glm::vec2 pos;
+    SongTime_t time;
+};
 
 class slider_t
 {
@@ -21,14 +24,14 @@ class slider_t
 
    public:
     const int repeat;
-    const float pixel_length;
+    float pixel_length;
     const float velocity;
     float duration() const
     {
         return pixel_length / velocity;
     }
     glm::vec2 end_pos() const;
-    static slider_t *from_def(const char *, glm::vec2, SongTime_t, SongTime_t);
+    static slider_t *from_def(const char *def, glm::vec2 pos, SongTime_t start, SongTime_t end);
     void draw(SongTime_t ms, SongTime_t start, SongTime_t end, float opacity);
     void translate_offset(const glm::vec2 &offset);
     bool ball_position_at_time(SongTime_t ms, SongTime_t start, SongTime_t end, glm::vec2 &out_pos) const;

@@ -1,102 +1,104 @@
 // clang-format off
 #include "stdafx.h"
 // clang-format on
+
 #include "zoom_pan.hpp"
 
-glm::vec2 zoom_pan::pan;
-float zoom_pan::zoom;
-static bool is_dirty = true;
-zoom_pan::Rect zoom_pan::playfield;
-static glm::vec2 stretch;
-int zoom_pan::stage_width;
-int zoom_pan::stage_height;
+#include "thirdparty/glm/glm.hpp"
+#include "thirdparty/glm/gtc/matrix_transform.hpp"
+
+ZoomPan zoom_pan;
+
+namespace
+{
 
 constexpr float ZOOM_MIN = -200.f;
 constexpr float ZOOM_MAX = 90.f;
 
-static float left = -1.;
-static float right = 1.;
-static float bottom = -1.;
-static float top = 1.;
+}  // namespace
 
-void zoom_pan::gl_to_osu_pixel(glm::vec2 &v)
+void ZoomPan::gl_to_osu_pixel(glm::vec2 &v) const
 {
-    const float A = 2.f / (right - left);
-    const float B = 2.f / (top - bottom);
-    const float C = (right + left) / (left - right);
-    const float D = (top + bottom) / (bottom - top);
+    const float A = 2.f / (m_right - m_left);
+    const float B = 2.f / (m_top - m_bottom);
+    const float C = (m_right + m_left) / (m_left - m_right);
+    const float D = (m_top + m_bottom) / (m_bottom - m_top);
     v.x = (v.x - C) / A;
     v.y = (v.y - D) / B;
 }
 
-void zoom_pan::gl_to_osu_pixel_vec(glm::vec2 &v)
+void ZoomPan::gl_to_osu_pixel_vec(glm::vec2 &v) const
 {
-    const float A = 2.f / (right - left);
-    const float B = 2.f / (top - bottom);
+    const float A = 2.f / (m_right - m_left);
+    const float B = 2.f / (m_top - m_bottom);
     v.x /= A;
     v.y /= B;
 }
 
-void zoom_pan::osu_pixel_to_gl(glm::vec2 &v)
+void ZoomPan::osu_pixel_to_gl(glm::vec2 &v) const
 {
-    const float A = 2.f / (right - left);
-    const float B = 2.f / (top - bottom);
-    const float C = (right + left) / (left - right);
-    const float D = (top + bottom) / (bottom - top);
+    const float A = 2.f / (m_right - m_left);
+    const float B = 2.f / (m_top - m_bottom);
+    const float C = (m_right + m_left) / (m_left - m_right);
+    const float D = (m_top + m_bottom) / (m_bottom - m_top);
     v.x = A * v.x + C;
     v.y = B * v.y + D;
 }
 
-void zoom_pan::set_dirty()
+void ZoomPan::set_dirty()
 {
-    if (zoom < ZOOM_MIN) zoom = ZOOM_MIN;
-    if (zoom > ZOOM_MAX) zoom = ZOOM_MAX;
-    const glm::vec2 zoom2(zoom * 4.f, zoom * 3.f);
-    left = pan.x - 128.f + zoom2.x;
-    right = pan.x + 640.f - zoom2.x;
-    bottom = pan.y + 480.f - zoom2.y;
-    top = pan.y - 96.f + zoom2.y;
-    is_dirty = true;
+    if (m_zoom < ZOOM_MIN) {
+        m_zoom = ZOOM_MIN;
+    }
+    if (m_zoom > ZOOM_MAX) {
+        m_zoom = ZOOM_MAX;
+    }
+    const glm::vec2 zoom2(m_zoom * 4.f, m_zoom * 3.f);
+    m_left = m_pan.x - 128.f + zoom2.x;
+    m_right = m_pan.x + 640.f - zoom2.x;
+    m_bottom = m_pan.y + 480.f - zoom2.y;
+    m_top = m_pan.y - 96.f + zoom2.y;
+    m_is_dirty = true;
 }
 
-void zoom_pan::reset()
+void ZoomPan::reset()
 {
-    pan = glm::vec2(0.f, 0.f);
-    zoom = 0.0;
+    m_pan = glm::vec2(0.f, 0.f);
+    m_zoom = 0.0;
     set_dirty();
 }
 
-void zoom_pan::set_projection()
+void ZoomPan::set_projection()
 {
-    if (is_dirty) {
-        is_dirty = false;
+    if (m_is_dirty) {
+        m_is_dirty = false;
+        m_projection = glm::scale(glm::mat4(1.f), glm::vec3(m_stretch, 1.f)) *
+                       glm::ortho(m_left, m_right, m_bottom, m_top, 0.f, 2.f);
         glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        glScalef(stretch.x, stretch.y, 1.f);
-        glOrtho(left, right, bottom, top, 0., 2.);
+        glLoadMatrixf(&m_projection[0][0]);
     }
 }
 
-void zoom_pan::on_resize(int width, int height)
+void ZoomPan::on_resize(int width, int height)
 {
     if (width < 5 || height < 5) return;
-    stage_width = width;
-    stage_height = height;
-    playfield.x = 0;
-    playfield.y = 0;
-    playfield.w = height * 4 / 3;
-    playfield.h = width * 3 / 4;
-    if (playfield.w > width) {
-        playfield.w = width;
-        playfield.h = playfield.w * 3 / 4;
-        playfield.y = (height - playfield.h) / 2;
+    m_stage_width = width;
+    m_stage_height = height;
+    m_playfield.x = 0;
+    m_playfield.y = 0;
+    m_playfield.w = height * 4 / 3;
+    m_playfield.h = width * 3 / 4;
+    if (m_playfield.w > width) {
+        m_playfield.w = width;
+        m_playfield.h = m_playfield.w * 3 / 4;
+        m_playfield.y = (height - m_playfield.h) / 2;
     } else {
-        playfield.h = height;
-        playfield.w = playfield.h * 4 / 3;
-        playfield.x = (width - playfield.w) / 2;
+        m_playfield.h = height;
+        m_playfield.w = m_playfield.h * 4 / 3;
+        m_playfield.x = (width - m_playfield.w) / 2;
     }
-    stretch.x = RATIO(playfield.w, width);
-    stretch.y = RATIO(playfield.h, height);
+    m_stretch.x = RATIO(m_playfield.w, width);
+    m_stretch.y = RATIO(m_playfield.h, height);
     glViewport(0, 0, width, height);
     set_dirty();
 }

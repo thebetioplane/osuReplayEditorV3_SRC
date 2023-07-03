@@ -74,8 +74,8 @@ DLLFUN(INT) Init(HWND hWnd, const wchar_t *osu_db_path, const wchar_t *song_path
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
     glClearColor(.0f, .0f, .0f, 1.0f);
-    zoom_pan::reset();
-    zoom_pan::set_projection();
+    zoom_pan.reset();
+    zoom_pan.set_projection();
     if (!textures::init()) return TEXTURE_FAILURE;
     glColor3f(1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -103,19 +103,19 @@ DLLFUN(BOOL) LoadReplay(const wchar_t *fname)
 
 DLLFUN(void) OnResize(int width, int height)
 {
-    zoom_pan::on_resize(width, height);
+    zoom_pan.on_resize(width, height);
 }
 
 static void pixel_to_virtual(glm::vec2 &v)
 {
-    const float vpw = static_cast<float>(zoom_pan::playfield.w);
-    const float vph = static_cast<float>(zoom_pan::playfield.h);
+    const float vpw = static_cast<float>(zoom_pan.playfield().w);
+    const float vph = static_cast<float>(zoom_pan.playfield().h);
     // change to GL coordinates
-    v.x = (v.x - zoom_pan::playfield.x) / vpw * 2.f - 1.f;
-    v.y = (v.y - zoom_pan::playfield.y) / vph * 2.f - 1.f;
+    v.x = (v.x - zoom_pan.playfield().x) / vpw * 2.f - 1.f;
+    v.y = (v.y - zoom_pan.playfield().y) / vph * 2.f - 1.f;
     v.y = -v.y;
     // inverse of the projection matrix (to osu coords)
-    zoom_pan::gl_to_osu_pixel(v);
+    zoom_pan.gl_to_osu_pixel(v);
 }
 
 DLLFUN(void) MouseDown(float x, float y)
@@ -162,7 +162,7 @@ DLLFUN(void) MouseWheel(float x, float y, BOOL isUp)
 
 DLLFUN(void) Render()
 {
-    zoom_pan::set_projection();
+    zoom_pan.set_projection();
     glClear(GL_COLOR_BUFFER_BIT);
     const SongTime_t t = audioengine::get_time();
     beatmapengine::draw(t);
@@ -579,19 +579,19 @@ DLLFUN(void) Replay_SetMods(UINT32 value)
 
 DLLFUN(void) ResetPanZoom()
 {
-    zoom_pan::reset();
+    zoom_pan.reset();
 }
 
 DLLFUN(void) ZoomIn()
 {
-    zoom_pan::zoom += 5.0;
-    zoom_pan::set_dirty();
+    zoom_pan.mut_zoom() += 5.0;
+    zoom_pan.set_dirty();
 }
 
 DLLFUN(void) ZoomOut()
 {
-    zoom_pan::zoom -= 5.0;
-    zoom_pan::set_dirty();
+    zoom_pan.mut_zoom() -= 5.0;
+    zoom_pan.set_dirty();
 }
 
 DLLFUN(BOOL) Undo()

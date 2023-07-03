@@ -5,7 +5,7 @@
 
 #include <array>
 #include <thread>
-#include <utility>
+#include <tuple>
 
 #include "../sqlite/sqlite3.h"
 
@@ -81,18 +81,18 @@ void config::init()
         "VALUES (?1, ?2);";
     ret = sqlite3_prepare_v2(db, sql_insert, -1, &stmt, nullptr);
     if (ret || stmt == nullptr) return;
-    using Pair = std::pair<Key, int>;
+    using Value = int;
+    using Pair = std::tuple<Key, Value>;
     std::array<Pair, 3> default_key_value{
-        std::make_pair(Key::UpdateTimeStampOnExit, 0),
-        std::make_pair(Key::Volume, 2),
-        std::make_pair(Key::CursorMode, 2),
+        std::make_tuple(Key::UpdateTimeStampOnExit, 0),
+        std::make_tuple(Key::Volume, 2),
+        std::make_tuple(Key::CursorMode, 2),
     };
     for (auto kv_pair : default_key_value) {
-        sqlite3_bind_int(stmt, 1, static_cast<int>(kv_pair.first));
-        sqlite3_bind_int(stmt, 2, kv_pair.second);
+        StatementLockette l(stmt);
+        sqlite3_bind_int(stmt, 1, static_cast<int>(std::get<Key>(kv_pair)));
+        sqlite3_bind_int(stmt, 2, std::get<Value>(kv_pair));
         db_step_all(stmt);
-        sqlite3_reset(stmt);
-        sqlite3_clear_bindings(stmt);
     }
 
     db_free_stmt(stmt);
