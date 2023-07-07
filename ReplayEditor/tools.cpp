@@ -209,11 +209,15 @@ void GrabTool::DoWeighting(replayengine::Replay* replay, const glm::vec2& a, con
     }
     const glm::vec2 dir = m_v1 - m_v0;
     float d0 = 0.f;
+    constexpr float eps = 0.00001f;
     for (I64 i = start; i < end; ++i) {
         const glm::vec2& p0 = m_frame_buf[i - 1].p;
         const glm::vec2& p = m_frame_buf[i].p;
         d0 += glm::distance(p, p0);
-        const float r = rev ? ((d - d0) / d) : (d0 / d);
+        float r = 1.f;
+        if (d > eps && d0 > eps) {
+            r = rev ? ((d - d0) / d) : (d0 / d);
+        }
         replay->mut_frames()[i].p = p + dir * r;
     }
 }
