@@ -168,6 +168,7 @@
     <ClInclude Include="bwriter.hpp" />
     <ClInclude Include="config.hpp" />
     <ClInclude Include="crypto.hpp" />
+    <ClInclude Include="history_stack.hpp" />
     <ClInclude Include="hitobject.hpp" />
     <ClInclude Include="osudb.hpp" />
     <ClInclude Include="replayengine.hpp" />
@@ -177,7 +178,6 @@
     <ClInclude Include="texture.hpp" />
     <ClInclude Include="tools.hpp" />
     <ClInclude Include="ui.hpp" />
-    <ClInclude Include="HistoryStack.hpp" />
     <ClInclude Include="zoom_pan.hpp" />
   </ItemGroup>
   <ItemGroup>

@@ -263,7 +263,7 @@ namespace osuReplayEditor
         public static extern int Replay_GetVersion();
 
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern long Replay_GetTimestamp();
+        public static extern long Replay_GetPlayTimestamp();
 
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
         public static extern void Replay_GetPlayerName(byte[] buf, ref int len);
@@ -305,7 +305,7 @@ namespace osuReplayEditor
         public static extern void Replay_SetVersion(int value);
 
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern void Replay_SetTimestamp(long value);
+        public static extern void Replay_SetPlayTimestamp(long value);
 
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Unicode)]
         public static extern void Replay_SetPlayerName(string name, int len);
@@ -354,6 +354,9 @@ namespace osuReplayEditor
 
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
         public static extern bool Redo();
+
+        [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern void MakeUndoSnapshot();
 
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
         public static extern void AnalyzeAccuracy(bool doTrace, ref int num300, ref int num100, ref int num50, ref int numMiss, ref float accuracy, ref float avgEarly, ref float avgLate, ref float unstableRate);

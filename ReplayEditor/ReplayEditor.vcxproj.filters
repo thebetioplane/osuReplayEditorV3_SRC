@@ -60,13 +60,13 @@
     <ClInclude Include="zoom_pan.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="HistoryStack.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="accuracy_analyzer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="tools.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="history_stack.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

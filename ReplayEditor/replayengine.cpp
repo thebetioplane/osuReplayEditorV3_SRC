@@ -5,9 +5,11 @@
 #include "replayengine.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <memory>
 #include <sstream>
+#include <utility>
 #include <vector>
 
 #include "../LZMA/LzmaDec.h"
@@ -15,6 +17,7 @@
 #include "breader.hpp"
 #include "bwriter.hpp"
 #include "crypto.hpp"
+#include "history_stack.hpp"
 #include "texture.hpp"
 #include "ui.hpp"
 
@@ -31,33 +34,17 @@
 #define trace_if(what)
 #endif
 
-uint8_t replayengine::game_mode;
-uint32_t replayengine::version;
-std::string replayengine::beatmap_hash;
-std::string replayengine::player_name;
-std::string replayengine::replay_hash;
-uint16_t replayengine::num_300;
-uint16_t replayengine::num_100;
-uint16_t replayengine::num_50;
-uint16_t replayengine::num_geki;
-uint16_t replayengine::num_katu;
-uint16_t replayengine::num_miss;
-uint32_t replayengine::total_score;
-uint16_t replayengine::max_combo;
-bool replayengine::full_combo;
-uint32_t replayengine::mods;
-std::string replayengine::lifebar_graph;
-U64 replayengine::timestamp;
-U64 replayengine::online_score_id;
-
-std::vector<replayengine::replayframe_t> replayengine::frames;
-I64 replayengine::current_frame_index = 0;
+namespace replayengine
+{
 
 namespace
 {
 
-void make_frames(char *str)
+HistoryStack<Replay, 10> local_history_stack;
+
+std::vector<ReplayFrame> make_frames(char *str)
 {
+    std::vector<ReplayFrame> frames;
 #ifdef TRACE_REPLAY_LOAD
     {
         const size_t replay_string_len = std::strlen(str);
@@ -90,7 +77,7 @@ void make_frames(char *str)
         }
         *str = '\0';
         ++str;
-        replayengine::replayframe_t f;
+        replayengine::ReplayFrame f;
         f.ms = atoi(ptrs[0]);
         f.p.x = static_cast<float>(atof(ptrs[1]));
         f.p.y = static_cast<float>(atof(ptrs[2]));
@@ -100,10 +87,11 @@ void make_frames(char *str)
         curr += f.ms;
         if (f.ms < 0) continue;
         f.ms = curr;
-        replayengine::frames.push_back(f);
+        frames.push_back(f);
     }
 end_of_string:
-    std::sort(replayengine::frames.begin(), replayengine::frames.end());
+    std::sort(frames.begin(), frames.end());
+    return frames;
 }
 
 void *simple_alloc(ISzAllocPtr p, size_t size)
@@ -139,7 +127,7 @@ bool interpret_lzma_result(const int res)
             not_fatal("LZMA output needed more bytes in output buffer");
             return false;
         case SZ_ERROR_PARAM:
-            not_fatal("LZMA incorrect paramater");
+            not_fatal("LZMA incorrect parameter");
             return false;
         case SZ_ERROR_THREAD:
             not_fatal("LZMA error in multithreaded functions");
@@ -150,64 +138,70 @@ bool interpret_lzma_result(const int res)
     }
 }
 
+void apply_mutation(std::unique_ptr<Replay> next)
+{
+    // TODO: If the frame size changes, the markers might be out of bounds
+    // if (local_current_view->frames().size() != next->frames().size()) {}
+    local_history_stack.push_mutation(std::move(next));
+}
+
 }  // namespace
 
-bool replayengine::init(const std::wstring &fname)
+bool Replay::read_from(const std::wstring &fname)
 {
-    frames.clear();
-    if (fname.empty()) return true;
+    if (fname.empty()) return false;
     breader_t r(fname);
     if (r.is_closed()) {
         not_fatal("replay cannot be opened");
         return false;
     }
-    r >> game_mode;
-    trace_if(+game_mode);
-    r >> version;
-    trace_if(version);
-    r >> beatmap_hash;
-    trace_if(beatmap_hash);
-    r >> player_name;
-    trace_if(player_name);
-    r >> replay_hash;
-    trace_if(replay_hash);
-    r >> num_300;
-    trace_if(num_300);
-    r >> num_100;
-    trace_if(num_100);
-    r >> num_50;
-    trace_if(num_50);
-    r >> num_geki;
-    trace_if(num_geki);
-    r >> num_katu;
-    trace_if(num_katu);
-    r >> num_miss;
-    trace_if(num_miss);
-    r >> total_score;
-    trace_if(total_score);
-    r >> max_combo;
-    trace_if(max_combo);
-    r >> full_combo;
-    trace_if(full_combo);
-    r >> mods;
-    trace_if(mods);
-    r >> lifebar_graph;
-    trace_if(lifebar_graph);
-    r >> timestamp;
-    trace_if(timestamp);
+    r >> m_metadata.game_mode;
+    trace_if(+m_metadata.game_mode);
+    r >> m_metadata.version;
+    trace_if(m_metadata.version);
+    r >> m_metadata.beatmap_hash;
+    trace_if(m_metadata.beatmap_hash);
+    r >> m_metadata.player_name;
+    trace_if(m_metadata.player_name);
+    r >> m_metadata.replay_hash;
+    trace_if(m_metadata.replay_hash);
+    r >> m_metadata.num_300;
+    trace_if(m_metadata.num_300);
+    r >> m_metadata.num_100;
+    trace_if(m_metadata.num_100);
+    r >> m_metadata.num_50;
+    trace_if(m_metadata.num_50);
+    r >> m_metadata.num_geki;
+    trace_if(m_metadata.num_geki);
+    r >> m_metadata.num_katu;
+    trace_if(m_metadata.num_katu);
+    r >> m_metadata.num_miss;
+    trace_if(m_metadata.num_miss);
+    r >> m_metadata.total_score;
+    trace_if(m_metadata.total_score);
+    r >> m_metadata.max_combo;
+    trace_if(m_metadata.max_combo);
+    r >> m_metadata.full_combo;
+    trace_if(m_metadata.full_combo);
+    r >> m_metadata.mods;
+    trace_if(m_metadata.mods);
+    r >> m_metadata.lifebar_graph;
+    trace_if(m_metadata.lifebar_graph);
+    r >> m_metadata.play_timestamp;
+    trace_if(m_metadata.play_timestamp);
     uint32_t in_size;
     r >> in_size;
     trace_if(in_size);
     if (in_size == 0) {
-        r >> online_score_id;
-        trace_if(online_score_id);
+        r >> m_metadata.online_score_id;
+        trace_if(m_metadata.online_score_id);
         not_fatal("replay contains no cursor data");
         return true;
     }
     auto buf = std::make_unique<uint8_t[]>(in_size);
     r.fill_buf(buf.get(), in_size);
-    r >> online_score_id;
-    trace_if(online_score_id);
+    r >> m_metadata.online_score_id;
+    trace_if(m_metadata.online_score_id);
     uint8_t *const prop_data = buf.get();
     uint8_t *const out_size_data = buf.get() + 5;
     uint8_t *const in_data = out_size_data + 8;
@@ -231,27 +225,11 @@ bool replayengine::init(const std::wstring &fname)
     trace_if((res == SZ_OK));
     trace_if((status == LZMA_STATUS_FINISHED_WITH_MARK));
     if (!interpret_lzma_result(res)) return false;
-    make_frames(out_data.get());
+    m_frames = make_frames(out_data.get());
     return true;
 }
 
-void replayengine::draw(SongTime_t ms)
-{
-    auto g = std::lower_bound(frames.begin(), frames.end(), ms, CmpMs<replayframe_t>());
-    if (g == frames.end()) return;
-    current_frame_index = g - frames.begin();
-    glm::vec2 pos = g->p;
-    if (g != frames.begin()) {
-        auto f = g - 1;
-        const float t = RATIO(ms - f->ms, g->ms - f->ms);
-        pos = glm::mix(f->p, g->p, t);
-    }
-    const glm::vec2 origin(16.0f, 16.0f);
-    glColor3f(1.0f, 1.0f, 1.0f);
-    textures::cursor->draw(pos, origin);
-}
-
-bool replayengine::write_to(const std::wstring &fname)
+bool Replay::write_to(const std::wstring &fname)
 {
     if (fname.empty()) return true;
     bwriter_t w(fname);
@@ -261,51 +239,51 @@ bool replayengine::write_to(const std::wstring &fname)
     }
     {
         Hasher hasher;
-        hasher(game_mode);
-        hasher(version);
-        hasher.add_data(player_name.c_str(), static_cast<uint32_t>(player_name.size()));
-        hasher(num_300);
-        hasher(num_100);
-        hasher(num_50);
-        hasher(num_geki);
-        hasher(num_katu);
-        hasher(num_miss);
-        hasher(total_score);
-        hasher(max_combo);
-        hasher(full_combo);
-        hasher(mods);
-        hasher.add_data(lifebar_graph.c_str(), static_cast<uint32_t>(lifebar_graph.size()));
-        hasher(timestamp);
-        hasher(frames.size());
-        for (auto frame : frames) {
+        hasher(m_metadata.game_mode);
+        hasher(m_metadata.version);
+        hasher.add_data(m_metadata.player_name.c_str(), static_cast<uint32_t>(m_metadata.player_name.size()));
+        hasher(m_metadata.num_300);
+        hasher(m_metadata.num_100);
+        hasher(m_metadata.num_50);
+        hasher(m_metadata.num_geki);
+        hasher(m_metadata.num_katu);
+        hasher(m_metadata.num_miss);
+        hasher(m_metadata.total_score);
+        hasher(m_metadata.max_combo);
+        hasher(m_metadata.full_combo);
+        hasher(m_metadata.mods);
+        hasher.add_data(m_metadata.lifebar_graph.c_str(), static_cast<uint32_t>(m_metadata.lifebar_graph.size()));
+        hasher(m_metadata.play_timestamp);
+        hasher(m_frames.size());
+        for (const auto &frame : m_frames) {
             hasher(frame);
         }
-        replay_hash = hasher.to_md5();
+        m_metadata.replay_hash = hasher.to_md5();
     }
-    w << game_mode;
-    w << version;
-    w << beatmap_hash;
-    w << player_name;
-    w << replay_hash;
-    w << num_300;
-    w << num_100;
-    w << num_50;
-    w << num_geki;
-    w << num_katu;
-    w << num_miss;
-    w << total_score;
-    w << max_combo;
-    w << full_combo;
-    w << mods;
-    w << lifebar_graph;
-    w << timestamp;
-    if (frames.empty()) {
+    w << m_metadata.game_mode;
+    w << m_metadata.version;
+    w << m_metadata.beatmap_hash;
+    w << m_metadata.player_name;
+    w << m_metadata.replay_hash;
+    w << m_metadata.num_300;
+    w << m_metadata.num_100;
+    w << m_metadata.num_50;
+    w << m_metadata.num_geki;
+    w << m_metadata.num_katu;
+    w << m_metadata.num_miss;
+    w << m_metadata.total_score;
+    w << m_metadata.max_combo;
+    w << m_metadata.full_combo;
+    w << m_metadata.mods;
+    w << m_metadata.lifebar_graph;
+    w << m_metadata.play_timestamp;
+    if (m_frames.empty()) {
         constexpr uint32_t out_size = 0;
         w << out_size;
     } else {
         std::stringstream ss;
         I64 last_action_ms = 0;
-        for (const auto &frame : frames) {
+        for (const auto &frame : m_frames) {
             if (std::isnan(frame.p.x) || std::isinf(frame.p.x) || std::isnan(frame.p.y) || std::isinf(frame.p.y)) {
                 continue;
             }
@@ -335,14 +313,148 @@ bool replayengine::write_to(const std::wstring &fname)
         w << static_cast<uint32_t>(0);
         w.write_buf(output_buf.get(), static_cast<uint32_t>(output_size));
     }
-    w << online_score_id;
+    w << m_metadata.online_score_id;
     return true;
 }
 
-void replayengine::invert_replay_frames()
+void Replay::draw(SongTime_t ms)
 {
-    for (size_t i = 0; i < frames.size(); ++i) {
-        glm::vec2 &p = frames[i].p;
+    auto g = std::lower_bound(m_frames.begin(), m_frames.end(), ms, CmpMs<ReplayFrame>());
+    if (g == m_frames.end()) return;
+    m_current_frame_index = g - m_frames.begin();
+    glm::vec2 pos = g->p;
+    if (g != m_frames.begin()) {
+        auto f = g - 1;
+        const float t = RATIO(ms - f->ms, g->ms - f->ms);
+        pos = glm::mix(f->p, g->p, t);
+    }
+    const glm::vec2 origin(16.0f, 16.0f);
+    glColor3f(1.0f, 1.0f, 1.0f);
+    textures::cursor->draw(pos, origin);
+}
+
+void Replay::invert_replay_frames()
+{
+    for (size_t i = 0; i < m_frames.size(); ++i) {
+        glm::vec2 &p = m_frames[i].p;
         p.y = 384.f - p.y;
     }
 }
+
+bool Replay::is_single_mark_in_range(I64 mark) const
+{
+    return mark >= 0 && mark < static_cast<I64>(m_frames.size());
+}
+
+bool Replay::are_in_out_marks_consistent() const
+{
+    if (!is_single_mark_in_range(m_mark_in)) return false;
+    if (!is_single_mark_in_range(m_mark_out)) return false;
+    return m_mark_in <= m_mark_out;
+}
+
+bool Replay::are_all_marks_consistent() const
+{
+    if (!is_single_mark_in_range(m_mark_in)) return false;
+    if (!is_single_mark_in_range(m_mark_out)) return false;
+    if (!is_single_mark_in_range(m_mark_mid)) return false;
+    return m_mark_in <= m_mark_mid && m_mark_mid <= m_mark_out;
+}
+
+void Replay::place_mark_in()
+{
+    m_mark_in = m_current_frame_index;
+    place_mark_mid_avg();
+}
+
+void Replay::place_mark_out()
+{
+    m_mark_out = m_current_frame_index;
+    place_mark_mid_avg();
+}
+
+void Replay::place_mark_mid()
+{
+    m_mark_mid = m_current_frame_index;
+}
+
+void Replay::place_mark_all()
+{
+    m_mark_in = 0;
+    m_mark_out = m_frames.size() - 1;
+    place_mark_mid_avg();
+}
+
+void Replay::clear_marks()
+{
+    m_mark_in = -1;
+    m_mark_out = -1;
+    m_mark_mid = -1;
+}
+
+void Replay::place_mark_mid_avg()
+{
+    if (are_in_out_marks_consistent()) {
+        m_mark_mid = m_mark_in + (m_mark_out - m_mark_in) / 2;
+    }
+}
+
+void Replay::place_marks_at(I64 mark_in, I64 mark_out)
+{
+    m_mark_in = mark_in;
+    m_mark_out = mark_out;
+    place_mark_mid_avg();
+}
+
+const Replay *CurrentView()
+{
+    return local_history_stack.current();
+}
+
+Replay *MutableCurrentView()
+{
+    return local_history_stack.current();
+}
+
+bool MutateCurrentView(std::function<bool(const Replay &curr, Replay &next)> mutator)
+{
+    std::unique_ptr<Replay> next = std::make_unique<Replay>();
+    const bool result = mutator(*local_history_stack.current(), *next);
+    if (result) {
+        apply_mutation(std::move(next));
+    }
+    return result;
+}
+
+bool MutateCurrentView(std::function<bool(Replay &replay)> mutator)
+{
+    std::unique_ptr<Replay> next = std::make_unique<Replay>(*local_history_stack.current());
+    const bool result = mutator(*next);
+    if (result) {
+        apply_mutation(std::move(next));
+    }
+    return result;
+}
+
+void DuplicateCurrentView()
+{
+    apply_mutation(std::make_unique<Replay>(*local_history_stack.current()));
+}
+
+bool Undo()
+{
+    return local_history_stack.undo_mutation();
+}
+
+bool Redo()
+{
+    return local_history_stack.redo_mutation();
+}
+
+bool init()
+{
+    local_history_stack.push_mutation(std::make_unique<Replay>());
+    return true;
+}
+
+}  // namespace replayengine

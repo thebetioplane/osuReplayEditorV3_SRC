@@ -333,6 +333,7 @@ namespace osuReplayEditor
 
         private void replayMetadataToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            this.MetadataEditorForm.FromAPI();
             this.MetadataEditorForm.ShowDialog();
         }
 
@@ -457,20 +458,13 @@ namespace osuReplayEditor
                     case Keys.M:
                         this.markMidBtn_Click(null, null);
                         break;
-                    case Keys.D0:
-                        this.keyPressNoneBtn_Click(null, null);
-                        break;
                     case Keys.D1:
-                        this.keyPressK1Btn_Click(null, null);
+                        this.toolSelGrabRadioButton.Checked = true;
+                        this.ChangeTool();
                         break;
                     case Keys.D2:
-                        this.keyPressK2Btn_Click(null, null);
-                        break;
-                    case Keys.D3:
-                        this.keyPressM1Btn_Click(null, null);
-                        break;
-                    case Keys.D4:
-                        this.keyPressM2Btn_Click(null, null);
+                        this.toolBrushRadioButton.Checked = true;
+                        this.ChangeTool();
                         break;
                     case Keys.R:
                         this.zoomPanResetBtn_Click(null, null);
@@ -562,7 +556,7 @@ namespace osuReplayEditor
         {
             if (API.CfgGetUpdateTimeStampOnExit() == 1)
             {
-                MetadataEditorForm.Timestamp = DateTime.Now;
+                MetadataEditorForm.PlayTimestamp = DateTime.Now;
                 MetadataEditorForm.ToAPI();
                 MetadataEditorForm.FromAPI();
                 UpdateModEffects();

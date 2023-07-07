@@ -9,7 +9,6 @@
 #include <functional>
 #include <vector>
 
-#include "HistoryStack.hpp"
 #include "audioengine.hpp"
 #include "replayengine.hpp"
 #include "texture.hpp"
@@ -25,25 +24,6 @@ static glm::vec2 pan_start;
 static glm::vec2 pan_mouse_start;
 static bool is_panning = false;
 
-static HistoryStack<10> undo_history;
-static HistoryStack<10> redo_history;
-static tool::ToolState tool_state;
-
-I64 ui::mark_in = -1;
-I64 ui::mark_out = -1;
-I64 ui::mark_mid = -1;
-
-template <typename T>
-static I64 iter_index(const T &iter)
-{
-    return iter - replayengine::frames.begin();
-}
-
-static bool is_mark_index_in_range(I64 index)
-{
-    return index >= 0 && index < static_cast<I64>(replayengine::frames.size());
-}
-
 static void do_mouse_pan(const glm::vec2 &p);
 
 void ui::mouse_move(const glm::vec2 &p)
@@ -51,52 +31,39 @@ void ui::mouse_move(const glm::vec2 &p)
     if (is_panning) {
         do_mouse_pan(p);
     }
-    if (tool_state.enabled) {
-        tool_state.v1.x = p.x;
-        tool_state.v1.y = p.y;
-        tool::apply(tool_state);
-    } else if (tool::current_tool() == tool::WhichTool::Brush) {
-        tool_state.v1.x = p.x;
-        tool_state.v1.y = p.y;
-    }
+    tool::current_tool->OnMouseMove(p);
 }
 
 void ui::mouse_down(const glm::vec2 &p)
 {
-    tool_state.enabled = true;
-    tool_state.v0.x = p.x;
-    tool_state.v0.y = p.y;
-    constexpr float e = 0.01f;
-    tool_state.v1.x = p.x + e;
-    tool_state.v1.y = p.y + e;
     bool can_grab = false;
-    if (ui::are_marks_consistent()) {
-        const glm::vec2 &v = replayengine::frames[ui::mark_mid].p;
+    if (replayengine::CurrentView()->are_all_marks_consistent()) {
         constexpr float RADIUS = 35.f;
-        if (glm::distance(v, p) <= RADIUS) can_grab = true;
+        if (glm::distance(replayengine::CurrentView()->mark_mid_frame().p, p) <=
+            RADIUS) {
+            can_grab = true;
+        }
     }
-    const tool::WhichTool current_tool = tool::current_tool();
-    if (current_tool == tool::WhichTool::Sel || current_tool == tool::WhichTool::Grab) {
-        tool::current_tool(can_grab ? tool::WhichTool::Grab : tool::WhichTool::Sel);
+    if (tool::CurrentToolType() == tool::ToolType::Select || tool::CurrentToolType() == tool::ToolType::Grab) {
+        tool::CurrentToolType(can_grab ? tool::ToolType::Grab : tool::ToolType::Select);
     }
-    ui::make_undo_restore_point();
+    tool::current_tool->OnMouseMove(p);
+    tool::current_tool->OnMouseDown(p);
 }
 
 void ui::mouse_up(const glm::vec2 &p)
 {
-    tool_state.enabled = false;
-    tool_state.v1.x = p.x;
-    tool_state.v1.y = p.y;
-    tool::apply(tool_state);
+    tool::current_tool->OnMouseMove(p);
+    tool::current_tool->OnMouseUp(p);
 }
 
 template <typename T>
 static void draw_marks(const T &iter)
 {
-    const I64 index = iter_index(iter);
-    const bool m_in = index == ui::mark_in;
-    const bool m_out = index == ui::mark_out;
-    const bool m_mid = index == ui::mark_mid;
+    const I64 index = iter - replayengine::CurrentView()->frames().begin();
+    const bool m_in = index == replayengine::CurrentView()->mark_in();
+    const bool m_out = index == replayengine::CurrentView()->mark_out();
+    const bool m_mid = index == replayengine::CurrentView()->mark_mid();
     const texture_t *texture = nullptr;
     if (m_in) {
         texture = textures::markerA;
@@ -126,8 +93,9 @@ static void draw_frames(const SongTime_t ms)
 {
     using namespace replayengine;
     if (ui::trail_mode == ui::TrailMode::Off) return;
-    auto start = std::lower_bound(frames.begin(), frames.end(), ms - ui::trail_length, CmpMs<replayframe_t>());
-    auto end = std::lower_bound(frames.begin(), frames.end(), ms, CmpMs<replayframe_t>());
+    const std::vector<ReplayFrame> &frames = CurrentView()->frames();
+    auto start = std::lower_bound(frames.begin(), frames.end(), ms - ui::trail_length, CmpMs<ReplayFrame>());
+    auto end = std::lower_bound(frames.begin(), frames.end(), ms, CmpMs<ReplayFrame>());
     if (start == frames.end()) return;
     if (end != frames.end()) ++end;
     glDisable(GL_TEXTURE_2D);
@@ -135,8 +103,8 @@ static void draw_frames(const SongTime_t ms)
     glColorRed();
     bool is_color_red = true;
     for (auto iter = start; iter != end; ++iter) {
-        const I64 index = iter_index(iter);
-        if (index >= ui::mark_in && index <= ui::mark_out) {
+        const I64 index = iter - replayengine::CurrentView()->frames().begin();
+        if (index >= CurrentView()->mark_in() && index <= CurrentView()->mark_out()) {
             if (is_color_red) {
                 glColor3f(0.4f, 0.f, 1.f);
                 is_color_red = false;
@@ -260,34 +228,7 @@ static void draw_frames(const SongTime_t ms)
 void ui::draw(SongTime_t ms)
 {
     draw_frames(ms);
-    tool::draw(tool_state);
-}
-
-bool ui::are_marks_consistent()
-{
-    if (!is_mark_index_in_range(mark_in)) return false;
-    if (!is_mark_index_in_range(mark_out)) return false;
-    if (!is_mark_index_in_range(mark_mid)) return false;
-    return mark_in <= mark_mid && mark_mid <= mark_out;
-}
-
-bool ui::undo()
-{
-    redo_history.create_snapshot();
-    return undo_history.restore_snapshot();
-}
-
-bool ui::redo()
-{
-    undo_history.create_snapshot();
-    return redo_history.restore_snapshot();
-}
-
-bool ui::is_in_out_mark_consistent()
-{
-    if (!is_mark_index_in_range(mark_in)) return false;
-    if (!is_mark_index_in_range(mark_out)) return false;
-    return mark_in <= mark_out;
+    tool::current_tool->Draw();
 }
 
 static void do_mouse_pan(const glm::vec2 &p)
@@ -320,9 +261,4 @@ void ui::mouse_wheel(const glm::vec2 &p, bool is_up)
     constexpr float amt = 5.0;
     zoom_pan.mut_zoom() += is_up ? amt : -amt;
     zoom_pan.set_dirty();
-}
-
-void ui::make_undo_restore_point()
-{
-    undo_history.create_snapshot();
 }

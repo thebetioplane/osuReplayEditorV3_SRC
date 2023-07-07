@@ -49,7 +49,7 @@ namespace osuReplayEditor.MetadataEditor
         public bool IsEasy { get; private set; }
 
 
-        public DateTime Timestamp
+        public DateTime PlayTimestamp
         {
             get
             {
@@ -86,7 +86,7 @@ namespace osuReplayEditor.MetadataEditor
                     break;
             }
             versionTextBox.Value = API.Replay_GetVersion();
-            Timestamp = TimeZoneInfo.ConvertTimeFromUtc(DateTime.FromBinary(API.Replay_GetTimestamp()), TimeZoneInfo.Local);
+            PlayTimestamp = TimeZoneInfo.ConvertTimeFromUtc(DateTime.FromBinary(API.Replay_GetPlayTimestamp()), TimeZoneInfo.Local);
             playerNameTextBox.Text = getPlayerName();
             num300TextBox.Value = API.Replay_GetNum300();
             num100TextBox.Value = API.Replay_GetNum100();
@@ -148,7 +148,7 @@ namespace osuReplayEditor.MetadataEditor
             else
                 API.Replay_SetGamemode(0);
             API.Replay_SetVersion(versionTextBox.Value);
-            API.Replay_SetTimestamp(TimeZoneInfo.ConvertTimeToUtc(Timestamp, TimeZoneInfo.Local).Ticks);
+            API.Replay_SetPlayTimestamp(TimeZoneInfo.ConvertTimeToUtc(PlayTimestamp, TimeZoneInfo.Local).Ticks);
             API.Replay_SetPlayerName(playerNameTextBox.Text, playerNameTextBox.Text.Length);
             API.Replay_SetNum300(num300TextBox.Value);
             API.Replay_SetNum100(num100TextBox.Value);
@@ -223,6 +223,7 @@ namespace osuReplayEditor.MetadataEditor
 
         private void buttonApply_Click(object sender, System.EventArgs e)
         {
+            API.MakeUndoSnapshot();
             ToAPI();
             Close();
         }

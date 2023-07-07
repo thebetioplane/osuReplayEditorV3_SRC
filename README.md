@@ -1,14 +1,12 @@
 # osuReplayEditorV3 Source Code Release
 
 # Instructions on how to use or download this software found [HERE](https://github.com/thebetioplane/osuReplayEditorV3)
-Instructions on how to use or download this software found [HERE](https://github.com/thebetioplane/osuReplayEditorV3)
-* Instructions on how to use or download this software found [HERE](https://github.com/thebetioplane/osuReplayEditorV3)
 
-Behold the shitstorm.
+Instructions on how to use or download this software found [HERE](https://github.com/thebetioplane/osuReplayEditorV3).
 
 # How to build
 
-Use Visual Studio 2019. Select CPU to be x64, do not use "Any CPU" or "x86". Once built you will need to place bass.dll and bass_fx.dll in the Debug or Release directory (wherever you are running the exe from).
+Use Visual Studio 2022. Select CPU to be x64, do not use "Any CPU" or "x86". Once built you will need to place bass.dll and bass_fx.dll in the Debug or Release directory (wherever you are running the exe from).
 
 # How to code
 
@@ -17,6 +15,12 @@ Explanations of the different Visual Studio projects in this solution:
 - osuReplayEditor - (C#) - the WinForms user interface
 - ReplayEditor - (C++) - a DLL loaded at runtime where nearly all of the actual replay editing code is
 - Builder - (C#) - my automated building system in order to produce builds and produces the manifest files to upload 
+
+# How to edit textures
+
+The textures are stored in the "assets" directory. The original Gimp files are there, but the format read by the program is an uncompressed texture in the [GL_RGBA](https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml) format. Gimp supports this format out of the box. To export that format from Gimp, save your file as ".raw" in the export dialog, and then choose "Standard (R, G, B)" for save type and "R, G, B (normal)" for palette type.
+
+Currently the dimensions of the texture are not encoded along with the data. They are hardcoded in the program and the editor will expect to load a predetermined number of bytes from each texture file at runtime.
 
 # Licenses
 

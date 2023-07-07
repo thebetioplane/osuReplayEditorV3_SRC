@@ -4,172 +4,304 @@
 
 #include "tools.hpp"
 
+#include <vector>
+
 #include "audioengine.hpp"
 #include "ui.hpp"
 
-static tool::WhichTool which_tool = tool::WhichTool::Sel;
-tool::ToolCallback tool::apply = tool::Sel_apply;
-tool::ToolCallback tool::draw = tool::Sel_draw;
-float tool::brush_radius = 60.f;
-
-tool::WhichTool tool::current_tool()
+namespace tool
 {
-    return which_tool;
-}
 
-void tool::current_tool(tool::WhichTool new_tool)
+namespace
 {
-    const tool::WhichTool old_tool = which_tool;
-    if (old_tool != new_tool) {
-        which_tool = new_tool;
-        switch (new_tool) {
-            case tool::WhichTool::Sel:
-                tool::apply = tool::Sel_apply;
-                tool::draw = tool::Sel_draw;
-                break;
-            case tool::WhichTool::Grab:
-                tool::apply = tool::Grab_apply;
-                tool::draw = tool::Grab_draw;
-                break;
-            case tool::WhichTool::Brush:
-                tool::apply = tool::Brush_apply;
-                tool::draw = tool::Brush_draw;
-                break;
-        }
-    }
-}
 
-void tool::ToolState::copy_frames_into_buf()
+class SelectTool : public Tool
 {
-    if (curr_frame_buf_in == ui::mark_in && curr_frame_buf_mid == ui::mark_mid && curr_frame_buf_out == ui::mark_out) {
-        return;
-    }
-    curr_frame_buf_in = ui::mark_in;
-    curr_frame_buf_mid = ui::mark_mid;
-    curr_frame_buf_out = ui::mark_out;
-    frame_buf.resize(ui::mark_out - ui::mark_in + 1);
-    for (I64 i = ui::mark_in, k = 0; i <= ui::mark_out; ++i, ++k) {
-        frame_buf[k] = replayengine::frames[i];
-    }
-}
+   public:
+    void OnMouseUp(const glm::vec2& mouse) override;
+    void OnMouseDown(const glm::vec2& mouse) override;
+    void OnMouseMove(const glm::vec2& mouse) override;
+    void Draw() override;
 
-static bool is_between(const float v, const float a, const float b)
+   private:
+    bool ApplyMutation(replayengine::Replay& replay);
+
+    bool m_enabled = false;
+    glm::vec2 m_v0{0.f, 0.f};
+    glm::vec2 m_v1{0.f, 0.f};
+};
+
+class GrabTool : public Tool
+{
+   public:
+    void OnMouseUp(const glm::vec2& mouse) override;
+    void OnMouseDown(const glm::vec2& mouse) override;
+    void OnMouseMove(const glm::vec2& mouse) override;
+    void Draw() override;
+
+   private:
+    void DoWeighting(replayengine::Replay* replay, const glm::vec2& a, const glm::vec2& b, const I64 start,
+                     const I64 end, const bool rev);
+    bool ApplyMutation(replayengine::Replay* replay);
+
+    bool m_enabled = false;
+    glm::vec2 m_v0{0.f, 0.f};
+    glm::vec2 m_v1{0.f, 0.f};
+    std::vector<replayengine::ReplayFrame> m_frame_buf;
+};
+
+class BrushTool : public Tool
+{
+   public:
+    void OnMouseUp(const glm::vec2& mouse) override;
+    void OnMouseDown(const glm::vec2& mouse) override;
+    void OnMouseMove(const glm::vec2& mouse) override;
+    void Draw() override;
+
+   private:
+    bool ApplyMutation(replayengine::Replay* replay);
+
+    bool m_enabled = false;
+    glm::vec2 m_v0{0.f, 0.f};
+    glm::vec2 m_v1{0.f, 0.f};
+};
+
+SelectTool local_select_tool_container;
+GrabTool local_grab_tool_container;
+BrushTool local_brush_tool_container;
+
+ToolType local_current_tool_type = ToolType::Select;
+
+bool is_between(const float v, const float a, const float b)
 {
     return (v >= a && v <= b) || (v >= b && v <= a);
 }
 
-void tool::Sel_apply(ToolState& s)
+}  // namespace
+
+Tool* current_tool = &local_select_tool_container;
+float brush_radius = 60.f;
+
+ToolType CurrentToolType()
 {
-    using namespace replayengine;
+    return local_current_tool_type;
+}
+
+void CurrentToolType(ToolType new_type)
+{
+    if (local_current_tool_type == new_type) {
+        return;
+    }
+    local_current_tool_type = new_type;
+    switch (local_current_tool_type) {
+        case ToolType::Select:
+            current_tool = &local_select_tool_container;
+            break;
+        case ToolType::Grab:
+            current_tool = &local_grab_tool_container;
+            break;
+        case ToolType::Brush:
+            current_tool = &local_brush_tool_container;
+            break;
+    }
+}
+
+// ----------
+// SelectTool
+// ----------
+
+void SelectTool::OnMouseUp(const glm::vec2& mouse)
+{
+    m_enabled = false;
+    m_v1 = mouse;
+
+    using ::replayengine::Replay;
+    replayengine::MutateCurrentView([this](Replay& replay) { return ApplyMutation(replay); });
+}
+
+void SelectTool::OnMouseDown(const glm::vec2& mouse)
+{
+    m_enabled = true;
+    m_v0 = mouse;
+}
+
+void SelectTool::OnMouseMove(const glm::vec2& mouse)
+{
+    m_v1 = mouse;
+}
+
+bool SelectTool::ApplyMutation(replayengine::Replay& replay)
+{
+    using ::replayengine::ReplayFrame;
     const SongTime_t ms = audioengine::get_time();
-    auto start = std::lower_bound(frames.begin(), frames.end(), ms - ui::trail_length, CmpMs<replayframe_t>());
-    auto end = std::lower_bound(frames.begin(), frames.end(), ms, CmpMs<replayframe_t>());
-    if (start == frames.end()) return;
-    if (end != frames.end()) ++end;
+    auto start =
+        std::lower_bound(replay.frames().begin(), replay.frames().end(), ms - ui::trail_length, CmpMs<ReplayFrame>());
+    auto end = std::lower_bound(replay.frames().begin(), replay.frames().end(), ms, CmpMs<ReplayFrame>());
+    if (start == replay.frames().end()) return false;
+    if (end != replay.frames().end()) ++end;
     I64 new_mark_in = -1;
     I64 new_mark_out = -1;
     for (auto iter = start; iter != end; ++iter) {
-        if (is_between(iter->p.x, s.v0.x, s.v1.x) && is_between(iter->p.y, s.v0.y, s.v1.y)) {
+        if (is_between(iter->p.x, m_v0.x, m_v1.x) && is_between(iter->p.y, m_v0.y, m_v1.y)) {
             if (new_mark_in == -1) {
-                new_mark_in = iter - frames.begin();
+                new_mark_in = iter - replay.frames().begin();
             }
-            new_mark_out = iter - frames.begin();
+            new_mark_out = iter - replay.frames().begin();
         }
     }
-    if (new_mark_in == -1 || new_mark_out == -1) return;
-    ui::mark_in = new_mark_in;
-    ui::mark_out = new_mark_out;
-    ui::mark_mid = new_mark_in + (new_mark_out - new_mark_in) / 2;
+    if (new_mark_in == -1 || new_mark_out == -1) return false;
+    replay.place_marks_at(new_mark_in, new_mark_out);
+    return true;
 }
 
-void tool::Sel_draw(ToolState& s)
+void SelectTool::Draw()
 {
-    if (!s.enabled) return;
+    if (!m_enabled) return;
     glDisable(GL_TEXTURE_2D);
     glBegin(GL_LINE_LOOP);
     glColorBlue();
-    glVertex2f(s.v0.x, s.v0.y);
-    glVertex2f(s.v1.x, s.v0.y);
-    glVertex2f(s.v1.x, s.v1.y);
-    glVertex2f(s.v0.x, s.v1.y);
+    glVertex2f(m_v0.x, m_v0.y);
+    glVertex2f(m_v1.x, m_v0.y);
+    glVertex2f(m_v1.x, m_v1.y);
+    glVertex2f(m_v0.x, m_v1.y);
     glEnd();
     glEnable(GL_TEXTURE_2D);
 }
 
-static void do_weight(const tool::ToolState& s, const glm::vec2& a, const glm::vec2& b, const I64 start, const I64 end,
-                      const I64 k_start, const bool rev)
+// --------
+// GrabTool
+// --------
+
+void GrabTool::OnMouseUp(const glm::vec2& mouse)
+{
+    m_enabled = false;
+    m_v1 = mouse;
+    ApplyMutation(replayengine::MutableCurrentView());
+}
+
+void GrabTool::OnMouseDown(const glm::vec2& mouse)
+{
+    if (!replayengine::CurrentView()->are_all_marks_consistent()) {
+        return;
+    }
+    m_enabled = true;
+    m_v0 = mouse;
+    replayengine::DuplicateCurrentView();
+    m_frame_buf = replayengine::CurrentView()->frames();
+}
+
+void GrabTool::OnMouseMove(const glm::vec2& mouse)
+{
+    m_v1 = mouse;
+    if (m_enabled) {
+        ApplyMutation(replayengine::MutableCurrentView());
+    }
+}
+
+void GrabTool::DoWeighting(replayengine::Replay* replay, const glm::vec2& a, const glm::vec2& b, const I64 start,
+                           const I64 end, const bool rev)
 {
     float d = 0.f;
-    for (I64 i = start, k = k_start; i < end; ++i, ++k) {
-        const glm::vec2& p0 = s.frame_buf[k - 1].p;
-        const glm::vec2& p1 = s.frame_buf[k].p;
+    for (I64 i = start; i < end; ++i) {
+        const glm::vec2& p0 = m_frame_buf[i - 1].p;
+        const glm::vec2& p1 = m_frame_buf[i].p;
         d += glm::distance(p1, p0);
     }
-    const glm::vec2 dir = s.v1 - b;
+    const glm::vec2 dir = m_v1 - m_v0;
     float d0 = 0.f;
-    for (I64 i = start, k = k_start; i < end; ++i, ++k) {
-        const glm::vec2& p0 = s.frame_buf[k - 1].p;
-        const glm::vec2& p = s.frame_buf[k].p;
+    for (I64 i = start; i < end; ++i) {
+        const glm::vec2& p0 = m_frame_buf[i - 1].p;
+        const glm::vec2& p = m_frame_buf[i].p;
         d0 += glm::distance(p, p0);
         const float r = rev ? ((d - d0) / d) : (d0 / d);
-        const glm::vec2 pp = p + dir * r;
-        replayengine::frames[i].p = pp;
+        replay->mut_frames()[i].p = p + dir * r;
     }
 }
 
-void tool::Grab_apply(ToolState& s)
+bool GrabTool::ApplyMutation(replayengine::Replay* replay)
 {
-    if (!ui::are_marks_consistent()) {
-        return;
+    if (!replay->are_all_marks_consistent()) {
+        return false;
     }
-    s.copy_frames_into_buf();
-    const glm::vec2& a = s.frame_buf.front().p;
-    const glm::vec2& b = s.frame_buf[ui::mark_mid - ui::mark_in].p;
-    const glm::vec2& c = s.frame_buf.back().p;
-    replayengine::frames[ui::mark_mid].p = s.v1;
-    do_weight(s, a, b, ui::mark_in + 1, ui::mark_mid, 1, false);
-    do_weight(s, c, b, ui::mark_mid + 1, ui::mark_out, ui::mark_mid - ui::mark_in + 1, true);
+    const I64 mark_in = replay->mark_in();
+    const I64 mark_mid = replay->mark_mid();
+    const I64 mark_out = replay->mark_out();
+    const glm::vec2& a = replay->mark_in_frame().p;
+    const glm::vec2& b = replay->mark_mid_frame().p;
+    const glm::vec2& c = replay->mark_out_frame().p;
+    replayengine::MutableCurrentView()->mut_frames()[mark_mid].p = m_frame_buf[mark_mid].p + (m_v1 - m_v0);
+    DoWeighting(replay, a, b, mark_in + 1, mark_mid, false);
+    DoWeighting(replay, c, b, mark_mid + 1, mark_out, true);
+    return true;
 }
 
-void tool::Grab_draw(ToolState& s)
+void GrabTool::Draw()
 {
-    if (!s.enabled) return;
+    if (!m_enabled) return;
     glDisable(GL_TEXTURE_2D);
     glBegin(GL_LINE_LOOP);
     glColorBlue();
-    glVertex2f(s.v0.x, s.v0.y);
-    glVertex2f(s.v1.x, s.v1.y);
+    glVertex2f(m_v0.x, m_v0.y);
+    glVertex2f(m_v1.x, m_v1.y);
     glEnd();
     glEnable(GL_TEXTURE_2D);
 }
 
-void tool::Brush_apply(ToolState& s)
+// ---------
+// BrushTool
+// ---------
+
+void BrushTool::OnMouseUp(const glm::vec2& mouse)
 {
-    if (!ui::are_marks_consistent()) {
-        return;
-    }
-    for (I64 i = ui::mark_in; i <= ui::mark_out; ++i) {
-        glm::vec2& p = replayengine::frames[i].p;
-        const float d = glm::distance(p, s.v1);
-        if (d <= brush_radius) {
-            const float m = 1.f - d / brush_radius;
-            p += (s.v1 - s.v0) * m;
-        }
-    }
-    s.v0 = s.v1;
+    m_enabled = false;
+    m_v1 = mouse;
+    ApplyMutation(replayengine::MutableCurrentView());
 }
 
-void tool::Brush_draw(ToolState& s)
+void BrushTool::OnMouseDown(const glm::vec2& mouse)
 {
-    constexpr int N = 9;
+    m_enabled = true;
+    m_v0 = mouse;
+    replayengine::DuplicateCurrentView();
+}
+
+void BrushTool::OnMouseMove(const glm::vec2& mouse)
+{
+    m_v1 = mouse;
+    if (m_enabled) {
+        ApplyMutation(replayengine::MutableCurrentView());
+    }
+}
+
+bool BrushTool::ApplyMutation(replayengine::Replay* replay)
+{
+    if (!replay->are_in_out_marks_consistent()) {
+        return false;
+    }
+    for (auto& frame : replay->mut_selection()) {
+        const float d = glm::distance(frame.p, m_v1);
+        if (d <= brush_radius) {
+            const float scale = 1.f - d / brush_radius;
+            frame.p += (m_v1 - m_v0) * scale;
+        }
+    }
+    m_v0 = m_v1;
+    return true;
+}
+
+void BrushTool::Draw()
+{
+    constexpr int N = 20;
     glDisable(GL_TEXTURE_2D);
     glBegin(GL_LINE_LOOP);
     glColorBlue();
     constexpr float two_pi = 6.28318f;
     for (int i = 0; i < N; ++i) {
         const float angle = RATIO(i, N) * two_pi;
-        glVertex2f(s.v1.x + glm::cos(angle) * brush_radius, s.v1.y + glm::sin(angle) * brush_radius);
+        glVertex2f(m_v1.x + glm::cos(angle) * brush_radius, m_v1.y + glm::sin(angle) * brush_radius);
     }
     glEnd();
     glEnable(GL_TEXTURE_2D);
 }
+
+}  // namespace tool

@@ -65,7 +65,7 @@ DLLFUN(INT) Init(HWND hWnd, const wchar_t *osu_db_path, const wchar_t *song_path
     config::init();
     if (!audioengine::init()) return AUDIO_FAILURE;
     if (!osudb::init()) return OSUDB_FAILURE;
-    if (!replayengine::init(L"")) return REPLAYENGINE_FAILURE;
+    if (!replayengine::init()) return REPLAYENGINE_FAILURE;
     if (!beatmapengine::init(L"")) return BEATMAPENGINE_FAILURE;
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
@@ -90,10 +90,13 @@ DLLFUN(BOOL) Cleanup()
 
 DLLFUN(BOOL) LoadReplay(const wchar_t *fname)
 {
-    if (!replayengine::init(fname)) return FALSE;
+    using ::replayengine::Replay;
+    if (!replayengine::MutateCurrentView([&fname](const Replay &, Replay &next) { return next.read_from(fname); })) {
+        return FALSE;
+    }
     std::wstring osu_path;
     std::wstring song_path;
-    const bool found = osudb::get_entry(replayengine::beatmap_hash, osu_path, song_path);
+    const bool found = osudb::get_entry(replayengine::CurrentView()->metadata().beatmap_hash, osu_path, song_path);
     if (!found) return FALSE;
     if (!audioengine::load(song_path)) return FALSE;
     if (!beatmapengine::init(osu_path)) return FALSE;
@@ -166,7 +169,7 @@ DLLFUN(void) Render()
     glClear(GL_COLOR_BUFFER_BIT);
     const SongTime_t t = audioengine::get_time();
     beatmapengine::draw(t);
-    replayengine::draw(t);
+    replayengine::MutableCurrentView()->draw(t);
     ui::draw(t);
     wglSwapLayerBuffers(graphics_handle.hdc, WGL_SWAP_MAIN_PLANE);
 }
@@ -326,64 +329,71 @@ DLLFUN(void) SetBeatmapSliderMult(float value)
     beatmapengine::slider_mult = value;
 }
 
-static void place_mark_mid_avg()
-{
-    if (ui::is_in_out_mark_consistent()) {
-        const I64 a = ui::mark_in;
-        const I64 b = ui::mark_out;
-        ui::mark_mid = a + (b - a) / 2;
-    }
-}
-
 DLLFUN(void) PlaceMarkIn()
 {
-    ui::mark_in = replayengine::current_frame_index;
-    place_mark_mid_avg();
+    using ::replayengine::Replay;
+    replayengine::MutateCurrentView([](Replay &replay) {
+        replay.place_mark_in();
+        return true;
+    });
 }
 
 DLLFUN(void) PlaceMarkOut()
 {
-    ui::mark_out = replayengine::current_frame_index;
-    place_mark_mid_avg();
+    using ::replayengine::Replay;
+    replayengine::MutateCurrentView([](Replay &replay) {
+        replay.place_mark_out();
+        return true;
+    });
 }
 
 DLLFUN(void) PlaceMarkMid()
 {
-    ui::mark_mid = replayengine::current_frame_index;
+    using ::replayengine::Replay;
+    replayengine::MutateCurrentView([](Replay &replay) {
+        replay.place_mark_mid();
+        return true;
+    });
 }
 
 DLLFUN(void) PlaceMarkAll()
 {
-    ui::mark_in = 0;
-    ui::mark_out = replayengine::frames.size() - 1;
-    ui::mark_mid = 1;
+    using ::replayengine::Replay;
+    replayengine::MutateCurrentView([](Replay &replay) {
+        replay.place_mark_all();
+        return true;
+    });
 }
 
 DLLFUN(void) ClearMarks()
 {
-    ui::mark_in = -1;
-    ui::mark_out = -1;
-    ui::mark_mid = -1;
+    using ::replayengine::Replay;
+    replayengine::MutateCurrentView([](Replay &replay) {
+        replay.clear_marks();
+        return true;
+    });
 }
 
 DLLFUN(BOOL) AreMarksMidConsistent()
 {
-    return ui::are_marks_consistent();
+    return replayengine::CurrentView()->are_all_marks_consistent();
 }
 
 DLLFUN(BOOL) AreMarksInOutConsistent()
 {
-    return ui::is_in_out_mark_consistent();
+    return replayengine::CurrentView()->are_in_out_marks_consistent();
 }
 
 DLLFUN(BOOL) SetFrameKeyPress(int mask)
 {
-    if (ui::is_in_out_mark_consistent()) {
-        ui::make_undo_restore_point();
-        for (I64 i = ui::mark_in; i <= ui::mark_out; ++i) {
-            replayengine::frames[i].keys = mask;
-        }
-        return TRUE;
+    using ::replayengine::Replay;
+    if (replayengine::CurrentView()->are_in_out_marks_consistent()) {
+        return replayengine::MutateCurrentView([mask](Replay &replay) {
+            for (auto &frame : replay.mut_selection()) {
+                frame.keys = mask;
+            }
+            return true;
+        });
     } else {
         return FALSE;
     }
@@ -401,10 +411,7 @@ DLLFUN(BOOL) WriteSave(const wchar_t *saveFileName)
 
 DLLFUN(BOOL) ExportAsOsr(const wchar_t *osrFileName)
 {
-    if (replayengine::write_to(osrFileName))
-        return TRUE;
-    else
-        return FALSE;
+    return replayengine::MutableCurrentView()->write_to(osrFileName);
 }
 
 DLLFUN(void) VisualMapInvert(BOOL value)
@@ -414,7 +421,11 @@ DLLFUN(void) VisualMapInvert(BOOL value)
 
 DLLFUN(void) InvertCursorData()
 {
-    replayengine::invert_replay_frames();
+    using ::replayengine::Replay;
+    replayengine::MutateCurrentView([](Replay &replay) {
+        replay.invert_replay_frames();
+        return true;
+    });
 }
 
 static void return_a_string(BYTE *out_str, INT *out_len, const std::string &s)
@@ -439,142 +450,142 @@ static void set_a_string(const wchar_t *in_str, INT in_len, std::string &s)
 
 DLLFUN(BYTE) Replay_GetGamemode()
 {
-    return replayengine::game_mode;
+    return replayengine::CurrentView()->metadata().game_mode;
 }
 
 DLLFUN(INT32) Replay_GetVersion()
 {
-    return replayengine::version;
+    return replayengine::CurrentView()->metadata().version;
 }
 
-DLLFUN(INT64) Replay_GetTimestamp()
+DLLFUN(INT64) Replay_GetPlayTimestamp()
 {
-    return replayengine::timestamp;
+    return replayengine::CurrentView()->metadata().play_timestamp;
 }
 
 DLLFUN(void) Replay_GetPlayerName(BYTE *out_str, INT *len)
 {
-    return_a_string(out_str, len, replayengine::player_name);
+    return_a_string(out_str, len, replayengine::CurrentView()->metadata().player_name);
 }
 
 DLLFUN(INT16) Replay_GetNum300()
 {
-    return replayengine::num_300;
+    return replayengine::CurrentView()->metadata().num_300;
 }
 
 DLLFUN(INT16) Replay_GetNum100()
 {
-    return replayengine::num_100;
+    return replayengine::CurrentView()->metadata().num_100;
 }
 
 DLLFUN(INT16) Replay_GetNum50()
 {
-    return replayengine::num_50;
+    return replayengine::CurrentView()->metadata().num_50;
 }
 
 DLLFUN(INT16) Replay_GetNumGeki()
 {
-    return replayengine::num_geki;
+    return replayengine::CurrentView()->metadata().num_geki;
 }
 
 DLLFUN(INT16) Replay_GetNumKatu()
 {
-    return replayengine::num_katu;
+    return replayengine::CurrentView()->metadata().num_katu;
 }
 
 DLLFUN(INT16) Replay_GetNumMiss()
 {
-    return replayengine::num_miss;
+    return replayengine::CurrentView()->metadata().num_miss;
 }
 
 DLLFUN(INT32) Replay_GetTotalScore()
 {
-    return replayengine::total_score;
+    return replayengine::CurrentView()->metadata().total_score;
 }
 
 DLLFUN(INT16) Replay_GetMaxCombo()
 {
-    return replayengine::max_combo;
+    return replayengine::CurrentView()->metadata().max_combo;
 }
 
 DLLFUN(BOOL) Replay_GetFullCombo()
 {
-    return replayengine::full_combo ? TRUE : FALSE;
+    return replayengine::CurrentView()->metadata().full_combo;
 }
 
 DLLFUN(UINT32) Replay_GetMods()
 {
-    return replayengine::mods;
+    return replayengine::CurrentView()->metadata().mods;
 }
 
 DLLFUN(void) Replay_SetVersion(INT value)
 {
-    replayengine::version = value;
+    replayengine::MutableCurrentView()->mut_metadata().version = value;
 }
 
-DLLFUN(void) Replay_SetTimestamp(INT64 value)
+DLLFUN(void) Replay_SetPlayTimestamp(INT64 value)
 {
-    replayengine::timestamp = value;
+    replayengine::MutableCurrentView()->mut_metadata().play_timestamp = value;
 }
 
 DLLFUN(void) Replay_SetGamemode(BYTE value)
 {
-    replayengine::game_mode = value;
+    replayengine::MutableCurrentView()->mut_metadata().game_mode = value;
 }
 
 DLLFUN(void) Replay_SetPlayerName(const wchar_t *str, INT len)
 {
-    set_a_string(str, len, replayengine::player_name);
+    set_a_string(str, len, replayengine::MutableCurrentView()->mut_metadata().player_name);
 }
 
 DLLFUN(void) Replay_SetNum300(INT16 value)
 {
-    replayengine::num_300 = value;
+    replayengine::MutableCurrentView()->mut_metadata().num_300 = value;
 }
 
 DLLFUN(void) Replay_SetNum100(INT16 value)
 {
-    replayengine::num_100 = value;
+    replayengine::MutableCurrentView()->mut_metadata().num_100 = value;
 }
 
 DLLFUN(void) Replay_SetNum50(INT16 value)
 {
-    replayengine::num_50 = value;
+    replayengine::MutableCurrentView()->mut_metadata().num_50 = value;
 }
 
 DLLFUN(void) Replay_SetNumGeki(INT16 value)
 {
-    replayengine::num_geki = value;
+    replayengine::MutableCurrentView()->mut_metadata().num_geki = value;
 }
 
 DLLFUN(void) Replay_SetNumKatu(INT16 value)
 {
-    replayengine::num_katu = value;
+    replayengine::MutableCurrentView()->mut_metadata().num_katu = value;
 }
 
 DLLFUN(void) Replay_SetNumMiss(INT16 value)
 {
-    replayengine::num_miss = value;
+    replayengine::MutableCurrentView()->mut_metadata().num_miss = value;
 }
 
 DLLFUN(void) Replay_SetTotalScore(INT32 value)
 {
-    replayengine::total_score = value;
+    replayengine::MutableCurrentView()->mut_metadata().total_score = value;
 }
 
 DLLFUN(void) Replay_SetMaxCombo(INT16 value)
 {
-    replayengine::max_combo = value;
+    replayengine::MutableCurrentView()->mut_metadata().max_combo = value;
 }
 
 DLLFUN(void) Replay_SetFullCombo(BOOL value)
 {
-    replayengine::full_combo = value;
+    replayengine::MutableCurrentView()->mut_metadata().full_combo = value;
 }
 
 DLLFUN(void) Replay_SetMods(UINT32 value)
 {
-    replayengine::mods = value;
+    replayengine::MutableCurrentView()->mut_metadata().mods = value;
 }
 
 DLLFUN(void) ResetPanZoom()
@@ -596,12 +607,17 @@ DLLFUN(void) ZoomOut()
 
 DLLFUN(BOOL) Undo()
 {
-    return ui::undo() ? TRUE : FALSE;
+    return replayengine::Undo();
+}
+
+DLLFUN(void) MakeUndoSnapshot()
+{
+    replayengine::DuplicateCurrentView();
 }
 
 DLLFUN(BOOL) Redo()
 {
-    return ui::redo() ? TRUE : FALSE;
+    return replayengine::Redo();
 }
 
 DLLFUN(void)
@@ -673,8 +689,8 @@ DLLFUN(BOOL) GetHitInfo(INT index, INT *kind, BOOL *is_miss, INT *hit_error, INT
 
 DLLFUN(void) SetTool(INT tool)
 {
-    if (tool >= 0 && tool < static_cast<int>(tool::WhichTool::num_tools)) {
-        tool::current_tool(static_cast<tool::WhichTool>(tool));
+    if (tool >= 0 && tool < static_cast<int>(tool::ToolType::num_tools)) {
+        tool::CurrentToolType(static_cast<tool::ToolType>(tool));
     }
 }
 

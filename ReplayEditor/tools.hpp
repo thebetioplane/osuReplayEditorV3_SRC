@@ -10,30 +10,28 @@
 namespace tool
 {
 
-enum class WhichTool { Sel, Grab, Brush, num_tools };
-class ToolState
+enum class ToolType { Select, Grab, Brush, num_tools };
+
+class Tool
 {
    public:
-    bool enabled = false;
-    glm::vec2 v0{0.f, 0.f};
-    glm::vec2 v1{0.f, 0.f};
-    I64 curr_frame_buf_in = 0;
-    I64 curr_frame_buf_mid = 0;
-    I64 curr_frame_buf_out = 0;
-    std::vector<replayengine::replayframe_t> frame_buf;
-    void copy_frames_into_buf();
+    virtual void OnMouseUp(const glm::vec2 &mouse)
+    {
+    }
+    virtual void OnMouseDown(const glm::vec2 &mouse)
+    {
+    }
+    virtual void OnMouseMove(const glm::vec2 &mouse)
+    {
+    }
+    virtual void Draw()
+    {
+    }
 };
-using ToolCallback = std::function<void(ToolState& s)>;
-WhichTool current_tool();
-void current_tool(WhichTool new_tool);
-extern ToolCallback apply;
-extern ToolCallback draw;
+
+ToolType CurrentToolType();
+void CurrentToolType(ToolType new_tool);
+extern Tool *current_tool;
 extern float brush_radius;
-void Sel_apply(ToolState& s);
-void Sel_draw(ToolState& s);
-void Grab_apply(ToolState& s);
-void Grab_draw(ToolState& s);
-void Brush_apply(ToolState& s);
-void Brush_draw(ToolState& s);
 
 }  // namespace tool
