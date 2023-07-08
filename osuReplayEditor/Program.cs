@@ -3,6 +3,7 @@ using System.Windows.Forms;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Collections.Generic;
+using osuReplayEditor.ConfigEditor;
 
 namespace osuReplayEditor
 {
@@ -10,6 +11,7 @@ namespace osuReplayEditor
     {
         const int SUCCESS = 0;
         const int FAILURE = 1;
+
         [STAThread]
         static int Main(string[] args)
         {
@@ -41,7 +43,6 @@ namespace osuReplayEditor
                     return SUCCESS;
                 }
             }
-            Maintenance.Updater.Run(true);
             Main2();
             return SUCCESS;
         }
@@ -117,7 +118,16 @@ namespace osuReplayEditor
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new MainForm());
+
+            if (Config.mainConfig.LoadedFromFile)
+            {
+                Maintenance.Updater.Run(true);
+                Application.Run(new MainForm());
+            }
+            else
+            {
+                Application.Run(new ConfigEditorForm());
+            }
         }
 
         private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)

@@ -75,7 +75,7 @@ void accuracy_analyzer::analyze(Stats* stats, bool do_trace)
             const bool curr_frame_pressed = curr_frame.pressed_mouse1() || curr_frame.pressed_mouse2();
             const float ball_radius = beatmapengine::circleradius() * 2.4f;
             glm::vec2 hitobj_pos = curr_obj.pos;
-            if (beatmapengine::hitobjects_inverted) hitobj_pos.y = 384.0 - hitobj_pos.y;
+            if (beatmapengine::hitobjects_inverted) hitobj_pos.y = 384.f - hitobj_pos.y;
             const bool inside_slider_ball = glm::distance(hitobj_pos, curr_frame.p) <= ball_radius;
             if (do_trace)
                 log << "SldTk: Object #" << hitobject_index << "; Frame #" << replayframe_index << "; "
@@ -111,7 +111,7 @@ void accuracy_analyzer::analyze(Stats* stats, bool do_trace)
                 continue;
             }
             glm::vec2 hitobj_pos = curr_obj.pos;
-            if (beatmapengine::hitobjects_inverted) hitobj_pos.y = 384.0 - hitobj_pos.y;
+            if (beatmapengine::hitobjects_inverted) hitobj_pos.y = 384.f - hitobj_pos.y;
             if (glm::distance(hitobj_pos, curr_frame.p) > radius) {
                 if (do_trace)
                     log << "Press: Object #" << hitobject_index << "; Frame #" << replayframe_index
@@ -174,12 +174,12 @@ void accuracy_analyzer::analyze(Stats* stats, bool do_trace)
 
 int accuracy_analyzer::next_hitobject(std::function<bool(const hitobject_t&)> func)
 {
-    auto iter =
-        std::lower_bound(beatmapengine::hitobjects.begin(), beatmapengine::hitobjects.end(), audioengine::get_time(),
-                         [](const hitobject_t& lhs, SongTime_t rhs) { return lhs.start < rhs; });
+    auto iter = std::lower_bound(beatmapengine::hitobjects.begin(), beatmapengine::hitobjects.end(),
+                                 audioengine::handle->get_time(),
+                                 [](const hitobject_t& lhs, SongTime_t rhs) { return lhs.start < rhs; });
     for (; iter != beatmapengine::hitobjects.end(); ++iter) {
         if (func(*iter)) {
-            audioengine::jump_to(iter->start + 1);
+            audioengine::handle->jump_to(iter->start + 1);
             return static_cast<int>(iter - beatmapengine::hitobjects.begin());
         }
     }

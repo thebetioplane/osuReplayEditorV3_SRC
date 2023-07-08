@@ -133,7 +133,7 @@ void SelectTool::OnMouseMove(const glm::vec2& mouse)
 bool SelectTool::ApplyMutation(replayengine::Replay& replay)
 {
     using ::replayengine::ReplayFrame;
-    const SongTime_t ms = audioengine::get_time();
+    const SongTime_t ms = audioengine::handle->get_time();
     auto start =
         std::lower_bound(replay.frames().begin(), replay.frames().end(), ms - ui::trail_length, CmpMs<ReplayFrame>());
     auto end = std::lower_bound(replay.frames().begin(), replay.frames().end(), ms, CmpMs<ReplayFrame>());

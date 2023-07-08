@@ -798,6 +798,7 @@
             this.MaximizeBox = false;
             this.Name = "MetadataEditorForm";
             this.ShowIcon = false;
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "MetadataEditor";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MetadataEditorForm_FormClosing);
             this.panel1.ResumeLayout(false);

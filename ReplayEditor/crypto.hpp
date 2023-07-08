@@ -59,7 +59,7 @@ class Hasher
         const byte *const state_bytes = reinterpret_cast<const byte *>(state);
         for (int i = 0; i < 16; ++i) {
             md5[i * 2] = to_hex_char(state_bytes[i] >> 4);
-            md5[i * 2 + 1] = to_hex_char(state_bytes[i] >> 4 & 0xF);
+            md5[i * 2 + 1] = to_hex_char((state_bytes[i] >> 4) & 0xF);
         }
         return md5;
     }

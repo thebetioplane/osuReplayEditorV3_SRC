@@ -54,6 +54,12 @@
     <Compile Include="Canvas.cs">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Include="ConfigEditor\ConfigEditorForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ConfigEditor\ConfigEditorForm.Designer.cs">
+      <DependentUpon>ConfigEditorForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="MetadataEditor\Int32TextBox.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -85,6 +91,9 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Maintenance\Updater.cs" />
+    <EmbeddedResource Include="ConfigEditor\ConfigEditorForm.resx">
+      <DependentUpon>ConfigEditorForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>

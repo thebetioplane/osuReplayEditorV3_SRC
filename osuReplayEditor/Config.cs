@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
-using System.Windows.Forms;
 
 namespace osuReplayEditor
 {
@@ -15,6 +14,7 @@ namespace osuReplayEditor
         public readonly ConfigValidation Validation;
         public ConfigValue(string defaultValue, string description, bool required, ConfigValidation validation)
         {
+            Value = null;
             DefaultValue = defaultValue;
             Description = description;
             Required = required;
@@ -25,44 +25,39 @@ namespace osuReplayEditor
     public class Config
     {
         public static Config mainConfig = new Config("config.txt");
+
+        public bool LoadedFromFile { get; private set; }
+
         private const string K_OSU_DB_PATH = "osu_db_path";
         private const string K_SONG_DIR_PATH = "osu_song_folder";
         private const string K_REPLAY_DIR_PATH = "osu_replay_folder";
         private const string K_UPDATE_URL = "update_url";
-        
+
         private readonly Dictionary<string, ConfigValue> pairs = new Dictionary<string, ConfigValue>();
-        private readonly string FileName;
+        public readonly string FileName;
 
         public string OsuDbPath
         {
-            get
-            {
-                return pairs[K_OSU_DB_PATH]?.Value;
-            }
+            get { return pairs[K_OSU_DB_PATH]?.Value; }
+            set { pairs[K_OSU_DB_PATH].Value = value; }
         }
 
         public string SongDirPath
         {
-            get
-            {
-                return pairs[K_SONG_DIR_PATH]?.Value;
-            }
+            get { return pairs[K_SONG_DIR_PATH]?.Value; }
+            set { pairs[K_SONG_DIR_PATH].Value = value; }
         }
 
         public string ReplayDirPath
         {
-            get
-            {
-                return pairs[K_REPLAY_DIR_PATH]?.Value;
-            }
+            get { return pairs[K_REPLAY_DIR_PATH]?.Value; }
+            set { pairs[K_REPLAY_DIR_PATH].Value = value; }
         }
 
         public string UpdateUrl
         {
-            get
-            {
-                return pairs[K_UPDATE_URL]?.Value;
-            }
+            get { return pairs[K_UPDATE_URL]?.Value; }
+            set { pairs[K_UPDATE_URL].Value = value; }
         }
 
         private void WriteComment(StreamWriter writer, string msg)
@@ -71,7 +66,7 @@ namespace osuReplayEditor
             writer.WriteLine(msg);
         }
 
-        private void CreateNewConfigFile()
+        public void CreateNewConfigFile()
         {
             using (var fstream = new FileStream(FileName, FileMode.Create, FileAccess.Write))
             using (var writer = new StreamWriter(fstream))
@@ -106,7 +101,7 @@ namespace osuReplayEditor
                     }
                     writer.Write(entry.Key);
                     writer.Write(" = ");
-                    writer.WriteLine(entry.Value.DefaultValue);
+                    writer.WriteLine(entry.Value.Value ?? entry.Value.DefaultValue);
                 }
             }
         }
@@ -117,7 +112,7 @@ namespace osuReplayEditor
             using (var reader = new StreamReader(fstream))
             {
                 int lineNum = 0;
-                while (! reader.EndOfStream)
+                while (!reader.EndOfStream)
                 {
                     ++lineNum;
                     string line = reader.ReadLine();
@@ -139,7 +134,7 @@ namespace osuReplayEditor
             }
         }
 
-        private void ValidateConfigFile()
+        public void Validate()
         {
             foreach (var kv in pairs)
             {
@@ -150,7 +145,7 @@ namespace osuReplayEditor
                     case ConfigValidation.None:
                         break;
                     case ConfigValidation.File:
-                        if (kv.Value.Value != null && ! File.Exists(kv.Value.Value))
+                        if (kv.Value.Value != null && !File.Exists(kv.Value.Value))
                             throw new Exception($"Item '{kv.Key}' ({kv.Value.Description}) - the file specified ({kv.Value.Value}) does not exist");
                         break;
                     case ConfigValidation.Directory:
@@ -159,7 +154,7 @@ namespace osuReplayEditor
                             if (!Directory.Exists(kv.Value.Value))
                                 throw new Exception($"Item '{kv.Key}' ({kv.Value.Description}) - the folder specified ({kv.Value.Value}) does not exist");
                             char lastChar = kv.Value.Value[kv.Value.Value.Length - 1];
-                            if (lastChar != '\\' || lastChar != '/')
+                            if (lastChar != '\\' && lastChar != '/')
                                 kv.Value.Value += '\\';
                         }
                         break;
@@ -167,20 +162,9 @@ namespace osuReplayEditor
             }
         }
 
-        public void ProcessStartConfigFile()
-        {
-            try
-            {
-                System.Diagnostics.Process.Start(FileName);
-            }
-            catch (Exception e)
-            {
-                MainForm.ErrorMessageOwnerless("Cannot start program: " + e.Message);
-            }
-        }
-
         public Config(string fname)
         {
+            LoadedFromFile = false;
             FileName = fname;
             pairs.Add(K_OSU_DB_PATH, new ConfigValue(@"C:\osu!\osu!.db", "Path to osu db", true, ConfigValidation.File));
             pairs.Add(K_SONG_DIR_PATH, new ConfigValue(@"C:\osu!\songs\", "Path to song folder", true, ConfigValidation.Directory));
@@ -191,18 +175,9 @@ namespace osuReplayEditor
                 if (File.Exists(fname))
                 {
                     ReadConfigFile();
+                    Validate();
+                    LoadedFromFile = true;
                 }
-                else
-                {
-                    CreateNewConfigFile();
-                    DialogResult reply = MessageBox.Show("A settings file has been created for you set certain paths. Would you like to edit it now? (Recommended)", "File Created", MessageBoxButtons.YesNo);
-                    if (reply == DialogResult.Yes)
-                    {
-                        ProcessStartConfigFile();
-                        Environment.Exit(0);
-                    }
-                }
-                ValidateConfigFile();
             }
             catch (Exception e)
             {

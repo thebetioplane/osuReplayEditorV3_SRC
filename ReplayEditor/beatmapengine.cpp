@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cctype>
 #include <fstream>
+#include <string_view>
 #include <vector>
 
 #include "config.hpp"
@@ -75,7 +76,7 @@ float beatmapengine::beat_length_at(SongTime_t ms)
         return 1.f;
 }
 
-static uint32_t djb_hash(const std::string &str)
+static uint32_t djb_hash(std::string_view str)
 {
     uint32_t ret = 5381;
     for (auto c : str) {
@@ -223,7 +224,7 @@ static void add_slider_ticks()
             t += dt;
         }
         for (int k = 1; k < hitobjects[i].slider->repeat; ++k) {
-            const SongTime_t dur = hitobjects[i].slider->duration();
+            const SongTime_t dur = static_cast<SongTime_t>(hitobjects[i].slider->duration());
             const SongTime_t this_tick_delay = k * dur;
             const SongTime_t reverse_tick_aug = (k + 1) * dur + 2 * hitobjects[i].start;
             for (auto index : just_added) {

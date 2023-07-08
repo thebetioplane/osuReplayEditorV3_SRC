@@ -13,6 +13,7 @@ namespace Builder
 #endif
         static readonly string OUTPUT_DIR;
         static readonly string DISTRO_DIR;
+        static readonly string BUILD_LABEL;
 
         static Program()
         {
@@ -22,8 +23,9 @@ namespace Builder
 #if USE_COMPRESSION
             PETITE_PATH = SLN_DIR + @"petite24\petite.exe";
 #endif
-            OUTPUT_DIR = Path.Combine(SLN_DIR, "build_output");
-            DISTRO_DIR = Path.Combine(SLN_DIR, "distro");
+            OUTPUT_DIR = Path.Combine(SLN_DIR, @"build_output\");
+            DISTRO_DIR = Path.Combine(SLN_DIR, @"distro\");
+            BUILD_LABEL = "Test";
         }
 
         static int Main(string[] args)
@@ -70,8 +72,8 @@ namespace Builder
             };
             foreach (var fname in moveToDistro)
             {
-                string src = OUTPUT_DIR + "\\" + fname;
-                string dst = DISTRO_DIR + "\\" + fname;
+                string src = Path.Combine(OUTPUT_DIR, fname);
+                string dst = Path.Combine(DISTRO_DIR, fname);
                 File.Delete(dst);
                 File.Move(src, dst);
             }
@@ -84,7 +86,7 @@ namespace Builder
         {
             if (!File.Exists(path))
             {
-                Out(string.Format("file not found: {0}", path));
+                Out($"file not found: {path}");
                 return true;
             }
             return false;
@@ -94,7 +96,7 @@ namespace Builder
         {
             if (!Directory.Exists(path))
             {
-                Out(string.Format("directory not found: {0}", path));
+                Out($"directory not found: {path}");
                 return true;
             }
             return false;
@@ -102,7 +104,7 @@ namespace Builder
 
         static bool RunProgram(string logName, string path, string args)
         {
-            Out(string.Format("running {0}", logName));
+            Out($"running {logName}");
             var psi = new ProcessStartInfo(path, args);
             psi.WorkingDirectory = SLN_DIR;
             psi.CreateNoWindow = true;
@@ -113,7 +115,7 @@ namespace Builder
             Console.WriteLine(p.StandardOutput.ReadToEnd());
             if (p.ExitCode != 0)
             {
-                Out(string.Format("(run {0} failed with exit code {1})", logName, p.ExitCode));
+                Out($"(run {logName} failed with exit code {p.ExitCode})");
                 return false;
             }
             return true;
@@ -122,23 +124,23 @@ namespace Builder
         static bool RunBuild()
         {
             const string WHICH_PROJECTS = "osuReplayEditor;ReplayEditor";
-            return RunProgram("msbuild", MSBUILD_PATH, string.Format("/nologo /v:quiet /m /p:OutDir={0};Configuration=Release;Platform=x64 /t:{1}", OUTPUT_DIR, WHICH_PROJECTS));
+            return RunProgram("msbuild", MSBUILD_PATH, $"/nologo /t:Rebuild /v:quiet /m /p:OutDir={OUTPUT_DIR};Configuration=Release;Platform=x64 /t:{WHICH_PROJECTS}");
         }
 
 #if USE_COMPRESSION
         static bool RunPetite(string target)
         {
-            return RunProgram("petite", PETITE_PATH, string.Format("-1 -b0 -ts0 -y -v0 {0}", target));
+            return RunProgram("petite", PETITE_PATH, $"-1 -b0 -ts0 -y -v0 {target}");
         }
 #endif
         static bool RunBuildManifest()
         {
-            return RunProgram("ReplayEditorBuildManifest", DISTRO_DIR + "\\osuReplayEditor.exe", "-build_manifest");
+            return RunProgram("ReplayEditorBuildManifest", Path.Combine(DISTRO_DIR, "osuReplayEditor.exe"), "-build_manifest");
         }
 
         static void Out(string msg)
         {
-            Console.WriteLine(">> " + msg);
+            Console.WriteLine($">> {msg}");
         }
     }
 }

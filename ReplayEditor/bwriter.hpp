@@ -4,6 +4,7 @@
 // clang-format on
 
 #include <fstream>
+#include <string_view>
 
 class bwriter_t
 {
@@ -40,6 +41,6 @@ class bwriter_t
 #endif
     bwriter_t &operator<<(const float &);
     bwriter_t &operator<<(const bool &);
-    bwriter_t &operator<<(const std::string &);
+    bwriter_t &operator<<(std::string_view);
     void write_buf(const void *, int);
 };

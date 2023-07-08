@@ -12,13 +12,84 @@
 #include "thirdparty/bass24/bass.h"
 #include "thirdparty/bass24/bass_fx.h"
 
+namespace audioengine
+{
+namespace
+{
+
 enum class StreamStatus { Stopped, Paused, Playing };
 
-static HSTREAM stream = 0;
-static HSTREAM stream_without_fx = 0;
-static StreamStatus status = StreamStatus::Stopped;
+class BassAudioEngine : public AudioEngine
+{
+   public:
+    bool load(const std::wstring &);
+    void play() override;
+    void pause() override;
+    void stop() override;
+    void toggle_pause() override;
+    bool is_playing() override;
+    bool is_paused() override;
+    bool is_stopped() override;
+    void jump_to(SongTime_t ms) override;
+    void rel_jump(SongTime_t ms) override;
+    void set_volume(float) override;
+    float get_volume() override;
+    void set_playback_speed(float) override;
+    float get_playback_speed() override;
+    SongTime_t get_time() override;
 
-bool audioengine::init()
+   private:
+    HSTREAM stream = 0;
+    HSTREAM stream_without_fx = 0;
+    StreamStatus status = StreamStatus::Stopped;
+    float vol = 0.0f;
+    float speed = 1.0f;
+};
+
+// Fake audio engine is used when the beatmap cannot be loaded. It doesn't support playing or pausing, but stores a
+// current time, volume and speed.
+class FakeAudioEngine : public AudioEngine
+{
+   public:
+    bool load(SongTime_t start_time, SongTime_t end_time);
+    void play() override;
+    void pause() override;
+    void stop() override;
+    void toggle_pause() override;
+    bool is_playing() override;
+    bool is_paused() override;
+    bool is_stopped() override;
+    void jump_to(SongTime_t ms) override;
+    void rel_jump(SongTime_t ms) override;
+    void set_volume(float) override;
+    float get_volume() override;
+    void set_playback_speed(float) override;
+    float get_playback_speed() override;
+    SongTime_t get_time() override;
+
+   private:
+    SongTime_t m_current_time = 0;
+    SongTime_t m_start_time = 0;
+    SongTime_t m_end_time = 1;
+    const StreamStatus m_status = StreamStatus::Stopped;
+    float m_volume = 0.f;
+    float m_speed = 1.f;
+};
+
+BassAudioEngine local_bass_audio_engine;
+FakeAudioEngine local_fake_audio_engine;
+
+bool file_exists(const std::wstring &fname)
+{
+    std::ifstream f(fname);
+    return f.good();
+}
+
+}  // namespace
+
+AudioEngine *handle = &local_bass_audio_engine;
+
+bool init()
 {
     if (!BASS_Init(-1, 44100, BASS_DEVICE_STEREO, nullptr, nullptr)) {
         fatal("audio engine could not start");
@@ -27,16 +98,18 @@ bool audioengine::init()
     return true;
 }
 
-static bool file_exists(const std::wstring &fname)
+void load_with_fallback(const std::wstring &fname, SongTime_t start_time, SongTime_t end_time)
 {
-    std::ifstream f(fname);
-    return f.good();
+    local_bass_audio_engine.stop();
+    if (!fname.empty() && local_bass_audio_engine.load(fname)) {
+        handle = &local_bass_audio_engine;
+    } else {
+        local_fake_audio_engine.load(start_time, end_time);
+        handle = &local_fake_audio_engine;
+    }
 }
 
-static float vol = 0.0f;
-static float speed = 1.0f;
-
-bool audioengine::load(const std::wstring &fname)
+bool BassAudioEngine::load(const std::wstring &fname)
 {
     if (stream) stop();
     std::wstring full_path = config::song_path + fname;
@@ -66,7 +139,7 @@ bool audioengine::load(const std::wstring &fname)
     return true;
 }
 
-void audioengine::play()
+void BassAudioEngine::play()
 {
     if (stream) {
         status = StreamStatus::Playing;
@@ -74,7 +147,7 @@ void audioengine::play()
     }
 }
 
-void audioengine::pause()
+void BassAudioEngine::pause()
 {
     if (stream) {
         status = StreamStatus::Paused;
@@ -82,7 +155,7 @@ void audioengine::pause()
     }
 }
 
-void audioengine::toggle_pause()
+void BassAudioEngine::toggle_pause()
 {
     if (status == StreamStatus::Paused)
         play();
@@ -90,7 +163,7 @@ void audioengine::toggle_pause()
         pause();
 }
 
-void audioengine::stop()
+void BassAudioEngine::stop()
 {
     if (stream) {
         status = StreamStatus::Stopped;
@@ -101,22 +174,22 @@ void audioengine::stop()
     }
 }
 
-bool audioengine::is_playing()
+bool BassAudioEngine::is_playing()
 {
     return status == StreamStatus::Playing;
 }
 
-bool audioengine::is_paused()
+bool BassAudioEngine::is_paused()
 {
     return status == StreamStatus::Paused;
 }
 
-bool audioengine::is_stopped()
+bool BassAudioEngine::is_stopped()
 {
     return status == StreamStatus::Stopped;
 }
 
-void audioengine::jump_to(SongTime_t ms)
+void BassAudioEngine::jump_to(SongTime_t ms)
 {
     if (stream) {
         if (ms < 0) ms = 0;
@@ -125,12 +198,12 @@ void audioengine::jump_to(SongTime_t ms)
     }
 }
 
-void audioengine::rel_jump(SongTime_t ms)
+void BassAudioEngine::rel_jump(SongTime_t ms)
 {
     jump_to(get_time() + ms);
 }
 
-void audioengine::set_volume(float value)
+void BassAudioEngine::set_volume(float value)
 {
     vol = value;
     if (stream) {
@@ -138,12 +211,12 @@ void audioengine::set_volume(float value)
     }
 }
 
-float audioengine::get_volume()
+float BassAudioEngine::get_volume()
 {
     return vol;
 }
 
-void audioengine::set_playback_speed(float value)
+void BassAudioEngine::set_playback_speed(float value)
 {
     if (stream) {
         speed = value;
@@ -152,12 +225,12 @@ void audioengine::set_playback_speed(float value)
     }
 }
 
-float audioengine::get_playback_speed()
+float BassAudioEngine::get_playback_speed()
 {
     return speed;
 }
 
-SongTime_t audioengine::get_time()
+SongTime_t BassAudioEngine::get_time()
 {
     if (stream) {
         const QWORD byte_pos = BASS_ChannelGetPosition(stream, BASS_POS_BYTE);
@@ -167,3 +240,85 @@ SongTime_t audioengine::get_time()
         return 0;
     }
 }
+
+bool FakeAudioEngine::load(SongTime_t start_time, SongTime_t end_time)
+{
+    m_current_time = start_time;
+    m_start_time = start_time;
+    m_end_time = end_time;
+    return true;
+}
+
+void FakeAudioEngine::play()
+{
+}
+
+void FakeAudioEngine::pause()
+{
+}
+
+void FakeAudioEngine::stop()
+{
+}
+
+void FakeAudioEngine::toggle_pause()
+{
+}
+
+bool FakeAudioEngine::is_playing()
+{
+    return m_status == StreamStatus::Playing;
+}
+
+bool FakeAudioEngine::is_paused()
+{
+    return m_status == StreamStatus::Paused;
+}
+
+bool FakeAudioEngine::is_stopped()
+{
+    return m_status == StreamStatus::Stopped;
+}
+
+void FakeAudioEngine::jump_to(SongTime_t ms)
+{
+    if (ms < m_start_time) {
+        m_current_time = m_start_time;
+    } else if (ms > m_end_time) {
+        m_current_time = m_end_time;
+    } else {
+        m_current_time = ms;
+    }
+}
+
+void FakeAudioEngine::rel_jump(SongTime_t ms)
+{
+    jump_to(get_time() + ms);
+}
+
+void FakeAudioEngine::set_volume(float value)
+{
+    m_volume = value;
+}
+
+float FakeAudioEngine::get_volume()
+{
+    return m_volume;
+}
+
+void FakeAudioEngine::set_playback_speed(float value)
+{
+    m_speed = value;
+}
+
+float FakeAudioEngine::get_playback_speed()
+{
+    return m_speed;
+}
+
+SongTime_t FakeAudioEngine::get_time()
+{
+    return m_current_time;
+}
+
+}  // namespace audioengine

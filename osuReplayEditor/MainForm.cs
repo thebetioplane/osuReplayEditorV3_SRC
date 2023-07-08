@@ -7,8 +7,6 @@ namespace osuReplayEditor
     public partial class MainForm : Form
     {
 #if DEBUG
-        //private const string OSR_ON_LOAD = "molli.osr";
-        //private const string OSR_ON_LOAD = "ban.osr";
         private const string OSR_ON_LOAD = "hhh.osr";
 #endif
         private int songMin = 0;
@@ -16,6 +14,7 @@ namespace osuReplayEditor
         private Timer FrameTimer = new Timer();
         private Timer ScrollBarTimer = new Timer();
         private MetadataEditor.MetadataEditorForm MetadataEditorForm;
+        private ConfigEditor.ConfigEditorForm ConfigEditorForm;
         private bool scrubRight = false;
         private bool scrubLeft = false;
         private float scrubMult = 1.0f;
@@ -43,6 +42,8 @@ namespace osuReplayEditor
         {
             InitializeComponent();
             this.MetadataEditorForm = new MetadataEditor.MetadataEditorForm();
+            this.ConfigEditorForm = new ConfigEditor.ConfigEditorForm();
+            this.ConfigEditorForm.Standalone = false;
             this.canvas.Begin();
             this.volumeBar.Value = API.CfgGetVolume();
             this.volumeBar_ValueChanged(null, null);
@@ -58,28 +59,58 @@ namespace osuReplayEditor
 
         private void UpdateModEffects()
         {
+            // ---------------------------
+            // DoubleTime and halftime settings:
+            // ---------------------------
+            if (MetadataEditorForm.IsHalfTime && MetadataEditorForm.IsDoubleTime)
+            {
+                ErrorMessage("This replay has incompatible mods HalfTime and DoubleTime applied.");
+            }
+            // Either both enabled (error state) or both disabled should be NoMod
+            if (MetadataEditorForm.IsHalfTime == MetadataEditorForm.IsDoubleTime)
+            {
+                this.playbackRadio100x.Checked = true;
+                this.ChangePlaybackSpeed();
+            }
+            else if (MetadataEditorForm.IsDoubleTime)
+            {
+                this.playbackRadio150x.Checked = true;
+                this.ChangePlaybackSpeed();
+            }
+            else if (MetadataEditorForm.IsHalfTime)
+            {
+                this.playbackRadio075x.Checked = true;
+                this.ChangePlaybackSpeed();
+            }
+
+            // ---------------------------
+            // Easy and hardrock settings:
+            // ---------------------------
             if (MetadataEditorForm.IsEasy && MetadataEditorForm.IsHardRock)
             {
-                ErrorMessage("This replay has incompatible mods Easy and HardRock mods applied.");
+                ErrorMessage("This replay has incompatible mods Easy and HardRock applied.");
             }
-            VisualMapInvert = MetadataEditorForm.IsHardRock;
-            if (MetadataEditorForm.IsHardRock)
+            // Either both enabled (error state) or both disabled should be NoMod
+            if (MetadataEditorForm.IsEasy == MetadataEditorForm.IsHardRock)
             {
+                VisualMapInvert = false;
+                API.SetBeatmapAR(originalAR);
+                API.SetBeatmapOD(originalOD);
+                API.SetBeatmapCS(originalCS);
+            }
+            else if (MetadataEditorForm.IsHardRock)
+            {
+                VisualMapInvert = true;
                 API.SetBeatmapAR(Math.Min(originalAR * 1.4f, 10.0f));
                 API.SetBeatmapOD(Math.Min(originalOD * 1.4f, 10.0f));
                 API.SetBeatmapCS(Math.Min(originalCS * 1.3f, 10.0f));
             }
             else if (MetadataEditorForm.IsEasy)
             {
+                VisualMapInvert = false;
                 API.SetBeatmapAR(originalAR * 0.5f);
                 API.SetBeatmapOD(originalOD * 0.5f);
                 API.SetBeatmapCS(originalCS * 0.5f);
-            }
-            else
-            {
-                API.SetBeatmapAR(originalAR);
-                API.SetBeatmapOD(originalOD);
-                API.SetBeatmapCS(originalCS);
             }
         }
 
@@ -92,9 +123,10 @@ namespace osuReplayEditor
             this.ScrollBarTimer.Tick += ScrollBarTimer_Tick;
             this.ScrollBarTimer.Start();
             this.updateTimestampCB.Checked = API.CfgGetUpdateTimeStampOnExit() == 1;
+            this.Text += $" [{GetDllBuildLabel()}]";
 #if DEBUG
             LoadReplay(OSR_ON_LOAD);
-            this.Text += " DEBUG";
+            this.Text += " (C# DEBUG)";
 #endif
         }
 
@@ -107,6 +139,15 @@ namespace osuReplayEditor
             MessageBox.Show(msg, "Error");
         }
 
+        private string GetDllBuildLabel()
+        {
+            int len = 0;
+            API.GetDllBuildLabel(null, ref len);
+            byte[] buf = new byte[len];
+            API.GetDllBuildLabel(buf, ref len);
+            return System.Text.Encoding.ASCII.GetString(buf, 0, len);
+        }
+
         private void LoadReplay(string fname)
         {
             if (API.LoadReplay(fname))
@@ -116,7 +157,7 @@ namespace osuReplayEditor
                 this.songMax = API.GetReplayEndMs();
                 API.JumpTo(this.songMin);
                 this.SetPauseBtnText(false);
-                this.saveFileDialog1.FileName = System.IO.Path.GetFileName(fname);
+                this.saveFileDialog1.FileName = Path.GetFileName(fname);
                 MetadataEditorForm.FromAPI();
                 originalAR = API.GetBeatmapAR();
                 originalOD = API.GetBeatmapOD();
@@ -140,6 +181,7 @@ namespace osuReplayEditor
             {
                 ErrorMessage("Replay and/or song failed to load");
             }
+            API.SetVolume(this.volumeBar.Value / 10.0f);
         }
 
         private void FrameTimer_Tick(object sender, EventArgs e)
@@ -337,6 +379,11 @@ namespace osuReplayEditor
             this.MetadataEditorForm.ShowDialog();
         }
 
+        private void configToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.ConfigEditorForm.ShowDialog();
+        }
+
         private void markInBtn_Click(object sender, EventArgs e)
         {
             API.PlaceMarkIn();
@@ -423,7 +470,7 @@ namespace osuReplayEditor
 
         private void trailLengthBar_Scroll(object sender, EventArgs e)
         {
-            int ms = this.trailLengthBar.Value *  100;
+            int ms = this.trailLengthBar.Value * 100;
             API.SetCursorTrailLength(ms);
             this.cursorTrailValueLabel.Text = ms.ToString() + " ms";
         }
@@ -740,7 +787,7 @@ namespace osuReplayEditor
                 ErrorMessage("You do not have a replay folder specified. You can change this in config.txt.");
                 return;
             }
-            if (! Directory.Exists(path))
+            if (!Directory.Exists(path))
             {
                 ErrorMessage("Your osu! replay folder does not exist. Check the path in config.txt");
                 return;

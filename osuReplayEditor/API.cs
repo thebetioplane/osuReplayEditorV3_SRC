@@ -6,6 +6,16 @@ namespace osuReplayEditor
     public static class API
     {
         /// <summary>
+        /// Returns the DLL build label, this should change everytime a new DLL is compiled. If buf is null, then
+        /// len is assigned the size of the string. Otherwise, the function is expecting len to contain the max
+        /// number of bytes to write to buf. After writing to buf, len will be reassigned to the number of bytes written.
+        /// </summary>
+        /// <param name="buf">The string as an ASCII encoded byte array</param>
+        /// <param name="len">The length of said buffer</param>
+        [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern void GetDllBuildLabel(byte[] buf, ref int len);
+
+        /// <summary>
         /// Reads the config file, reads osu!.db, sets up graphics engine, sets up audio engine
         /// </summary>
         /// <returns>true on success, false otherwise</returns>

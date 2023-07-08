@@ -1,6 +1,10 @@
 // clang-format off
 #include "stdafx.h"
 // clang-format on
+#include <string_view>
+#include <utility>
+#include <vector>
+
 #include "accuracy_analyzer.hpp"
 #include "audioengine.hpp"
 #include "beatmapengine.hpp"
@@ -13,6 +17,18 @@
 #include "ui.hpp"
 #include "zoom_pan.hpp"
 
+#ifndef BUILD_LABEL
+#ifdef _DEBUG
+#define BUILD_LABEL ("Debug " __DATE__ " " __TIME__)
+#else
+#error Non-debug build without a build label
+#define BUILD_LABEL ("None")
+#endif
+#endif
+
+namespace
+{
+
 class GraphicsHandle
 {
    public:
@@ -21,9 +37,9 @@ class GraphicsHandle
     HGLRC hrc;
 };
 
-static GraphicsHandle graphics_handle;
+GraphicsHandle graphics_handle;
 
-static void setup_graphics(HWND hWnd)
+void setup_graphics(HWND hWnd)
 {
     graphics_handle.hWnd = hWnd;
     graphics_handle.hdc = GetDC(hWnd);
@@ -46,6 +62,51 @@ static void setup_graphics(HWND hWnd)
     graphics_handle.hrc = wglCreateContext(graphics_handle.hdc);
     if (graphics_handle.hrc == nullptr) fatal("wglCreateContext failed");
     if (!wglMakeCurrent(graphics_handle.hdc, graphics_handle.hrc)) fatal("wglMakeCurrent failed");
+}
+
+// If out_str is nullptr, then assigns out_len to the length of the string. Otherwise this call is expecting out_len to
+// contain the length of out_str. It will fill out_str up to the length of s or the given length, whichever is smaller.
+// Afterwards, the value out_len is set to the the number of bytes written.
+void return_a_string(BYTE *out_str, INT *out_len, std::string_view s)
+{
+    if (out_str == nullptr) {
+        *out_len = static_cast<int>(s.size());
+        return;
+    }
+    *out_len = std::min(*out_len, static_cast<int>(s.size()));
+    for (int i = 0; i < *out_len; ++i) {
+        out_str[i] = static_cast<BYTE>(s[i]);
+    }
+}
+
+void set_a_string(const wchar_t *in_str, INT in_len, std::string &s)
+{
+    s.resize(in_len);
+    for (int i = 0; i < in_len; ++i) {
+        if (in_str[i] < 0x20 || in_str[i] >= 127)
+            s[i] = '?';
+        else
+            s[i] = static_cast<char>(in_str[i]);
+    }
+}
+
+void pixel_to_virtual(glm::vec2 &v)
+{
+    const float vpw = static_cast<float>(zoom_pan.playfield().w);
+    const float vph = static_cast<float>(zoom_pan.playfield().h);
+    // change to GL coordinates
+    v.x = (v.x - zoom_pan.playfield().x) / vpw * 2.f - 1.f;
+    v.y = (v.y - zoom_pan.playfield().y) / vph * 2.f - 1.f;
+    v.y = -v.y;
+    // inverse of the projection matrix (to osu coords)
+    zoom_pan.gl_to_osu_pixel(v);
+}
+
+}  // namespace
+
+DLLFUN(void) GetDllBuildLabel(BYTE *out_str, INT *len)
+{
+    return_a_string(out_str, len, BUILD_LABEL);
 }
 
 DLLFUN(INT) Init(HWND hWnd, const wchar_t *osu_db_path, const wchar_t *song_path)
@@ -91,34 +152,37 @@ DLLFUN(BOOL) Cleanup()
 DLLFUN(BOOL) LoadReplay(const wchar_t *fname)
 {
     using ::replayengine::Replay;
+    using ::replayengine::ReplayFrame;
     if (!replayengine::MutateCurrentView([&fname](const Replay &, Replay &next) { return next.read_from(fname); })) {
         return FALSE;
     }
     std::wstring osu_path;
     std::wstring song_path;
-    const bool found = osudb::get_entry(replayengine::CurrentView()->metadata().beatmap_hash, osu_path, song_path);
-    if (!found) return FALSE;
-    if (!audioengine::load(song_path)) return FALSE;
-    if (!beatmapengine::init(osu_path)) return FALSE;
-    audioengine::set_playback_speed(1.0f);
+    if (!osudb::get_entry(replayengine::CurrentView()->metadata().beatmap_hash, osu_path, song_path)) {
+        not_fatal("You do not have this beatmap. Information about the hit objects cannot be loaded.");
+    }
+    {
+        const std::vector<ReplayFrame> &frames = replayengine::CurrentView()->frames();
+        SongTime_t start = 0;
+        SongTime_t end = 1;
+        if (!frames.empty()) {
+            start = frames.front().ms;
+            end = frames.back().ms;
+        }
+        beatmapengine::first_hitobject_ms = start;
+        beatmapengine::last_hitobject_ms = end;
+        audioengine::load_with_fallback(song_path, start - 500, end + 500);
+    }
+    if (!beatmapengine::init(osu_path)) {
+        return FALSE;
+    }
+    audioengine::handle->set_playback_speed(1.0f);
     return TRUE;
 }
 
 DLLFUN(void) OnResize(int width, int height)
 {
     zoom_pan.on_resize(width, height);
-}
-
-static void pixel_to_virtual(glm::vec2 &v)
-{
-    const float vpw = static_cast<float>(zoom_pan.playfield().w);
-    const float vph = static_cast<float>(zoom_pan.playfield().h);
-    // change to GL coordinates
-    v.x = (v.x - zoom_pan.playfield().x) / vpw * 2.f - 1.f;
-    v.y = (v.y - zoom_pan.playfield().y) / vph * 2.f - 1.f;
-    v.y = -v.y;
-    // inverse of the projection matrix (to osu coords)
-    zoom_pan.gl_to_osu_pixel(v);
 }
 
 DLLFUN(void) MouseDown(float x, float y)
@@ -167,7 +231,7 @@ DLLFUN(void) Render()
 {
     zoom_pan.set_projection();
     glClear(GL_COLOR_BUFFER_BIT);
-    const SongTime_t t = audioengine::get_time();
+    const SongTime_t t = audioengine::handle->get_time();
     beatmapengine::draw(t);
     replayengine::MutableCurrentView()->draw(t);
     ui::draw(t);
@@ -176,72 +240,72 @@ DLLFUN(void) Render()
 
 DLLFUN(void) Play()
 {
-    audioengine::play();
+    audioengine::handle->play();
 }
 
 DLLFUN(void) Pause()
 {
-    audioengine::pause();
+    audioengine::handle->pause();
 }
 
 DLLFUN(void) Stop()
 {
-    audioengine::stop();
+    audioengine::handle->stop();
 }
 
 DLLFUN(void) TogglePause()
 {
-    audioengine::toggle_pause();
+    audioengine::handle->toggle_pause();
 }
 
 DLLFUN(BOOL) IsPlaying()
 {
-    return audioengine::is_playing();
+    return audioengine::handle->is_playing();
 }
 
 DLLFUN(BOOL) IsPaused()
 {
-    return audioengine::is_paused();
+    return audioengine::handle->is_paused();
 }
 
 DLLFUN(BOOL) IsStopped()
 {
-    return audioengine::is_stopped();
+    return audioengine::handle->is_stopped();
 }
 
 DLLFUN(void) JumpTo(SongTime_t ms)
 {
-    audioengine::jump_to(ms);
+    audioengine::handle->jump_to(ms);
 }
 
 DLLFUN(void) RelJump(SongTime_t ms)
 {
-    audioengine::rel_jump(ms);
+    audioengine::handle->rel_jump(ms);
 }
 
 DLLFUN(void) SetVolume(float percent)
 {
-    audioengine::set_volume(percent);
+    audioengine::handle->set_volume(percent);
 }
 
 DLLFUN(float) GetVolume()
 {
-    return audioengine::get_volume();
+    return audioengine::handle->get_volume();
 }
 
 DLLFUN(void) SetPlaybackSpeed(float multiplier)
 {
-    audioengine::set_playback_speed(multiplier);
+    audioengine::handle->set_playback_speed(multiplier);
 }
 
 DLLFUN(float) GetPlaybackSpeed()
 {
-    return audioengine::get_playback_speed();
+    return audioengine::handle->get_playback_speed();
 }
 
 DLLFUN(SongTime_t) GetTime()
 {
-    return audioengine::get_time();
+    return audioengine::handle->get_time();
 }
 
 // TRAIL_OFF = 0;
@@ -426,26 +490,6 @@ DLLFUN(void) InvertCursorData()
         replay.invert_replay_frames();
         return true;
     });
-}
-
-static void return_a_string(BYTE *out_str, INT *out_len, const std::string &s)
-{
-    int i;
-    for (i = 0; i < *out_len && i < static_cast<int>(s.size()); ++i) {
-        out_str[i] = static_cast<BYTE>(s[i]);
-    }
-    *out_len = i;
-}
-
-static void set_a_string(const wchar_t *in_str, INT in_len, std::string &s)
-{
-    s.resize(in_len);
-    for (int i = 0; i < in_len; ++i) {
-        if (in_str[i] < 0x20 || in_str[i] >= 127)
-            s[i] = '?';
-        else
-            s[i] = static_cast<char>(in_str[i]);
-    }
 }
 
 DLLFUN(BYTE) Replay_GetGamemode()

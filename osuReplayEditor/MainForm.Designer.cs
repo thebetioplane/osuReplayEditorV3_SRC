@@ -127,6 +127,7 @@ namespace osuReplayEditor
             this.currentHitObjectLabel = new System.Windows.Forms.Label();
             this.timelineControl = new osuReplayEditor.TimelineControl();
             this.canvas = new osuReplayEditor.Canvas();
+            this.configToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.volumeBar)).BeginInit();
             this.playbackSpeedPanel.SuspendLayout();
@@ -143,6 +144,7 @@ namespace osuReplayEditor
             this.replayMetadataToolStripMenuItem,
             this.editToolStripMenuItem,
             this.quickLoadToolStripMenuItem,
+            this.configToolStripMenuItem,
             this.githubToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
@@ -232,21 +234,21 @@ namespace osuReplayEditor
             // githubToolStripMenuItem1
             // 
             this.githubToolStripMenuItem1.Name = "githubToolStripMenuItem1";
-            this.githubToolStripMenuItem1.Size = new System.Drawing.Size(172, 22);
+            this.githubToolStripMenuItem1.Size = new System.Drawing.Size(180, 22);
             this.githubToolStripMenuItem1.Text = "Github";
             this.githubToolStripMenuItem1.Click += new System.EventHandler(this.githubToolStripMenuItem1_Click);
             // 
             // keybindReferenceToolStripMenuItem
             // 
             this.keybindReferenceToolStripMenuItem.Name = "keybindReferenceToolStripMenuItem";
-            this.keybindReferenceToolStripMenuItem.Size = new System.Drawing.Size(172, 22);
+            this.keybindReferenceToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.keybindReferenceToolStripMenuItem.Text = "Keybind Reference";
             this.keybindReferenceToolStripMenuItem.Click += new System.EventHandler(this.keybindReferenceToolStripMenuItem_Click);
             // 
             // analyzeAccTraceToolStripMenuItem
             // 
             this.analyzeAccTraceToolStripMenuItem.Name = "analyzeAccTraceToolStripMenuItem";
-            this.analyzeAccTraceToolStripMenuItem.Size = new System.Drawing.Size(172, 22);
+            this.analyzeAccTraceToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.analyzeAccTraceToolStripMenuItem.Text = "Analyze Acc Trace";
             this.analyzeAccTraceToolStripMenuItem.Click += new System.EventHandler(this.analyzeAccTraceToolStripMenuItem_Click);
             // 
@@ -1185,6 +1187,13 @@ namespace osuReplayEditor
             this.canvas.MouseMove += new System.Windows.Forms.MouseEventHandler(this.canvas_MouseMove);
             this.canvas.MouseUp += new System.Windows.Forms.MouseEventHandler(this.canvas_MouseUp);
             // 
+            // configToolStripMenuItem
+            // 
+            this.configToolStripMenuItem.Name = "configToolStripMenuItem";
+            this.configToolStripMenuItem.Size = new System.Drawing.Size(55, 20);
+            this.configToolStripMenuItem.Text = "Config";
+            this.configToolStripMenuItem.Click += new System.EventHandler(this.configToolStripMenuItem_Click);
+            // 
             // MainForm
             // 
             this.AllowDrop = true;
@@ -1386,6 +1395,7 @@ namespace osuReplayEditor
         private System.Windows.Forms.Button nextObjectBtn;
         private System.Windows.Forms.ToolStripMenuItem analyzeAccTraceToolStripMenuItem;
         private System.Windows.Forms.Label currentHitObjectLabel;
+        private System.Windows.Forms.ToolStripMenuItem configToolStripMenuItem;
     }
 }
 

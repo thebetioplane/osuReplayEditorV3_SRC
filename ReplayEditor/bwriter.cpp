@@ -5,6 +5,7 @@
 #include "bwriter.hpp"
 
 #include <sstream>
+#include <string_view>
 
 template <typename T>
 static void slide(std::ofstream &file, const T &value)
@@ -90,7 +91,7 @@ void bwriter_t::write_uleb128(uint32_t value)
     } while (value != 0);
 }
 
-bwriter_t &bwriter_t::operator<<(const std::string &value)
+bwriter_t &bwriter_t::operator<<(std::string_view value)
 {
     file.put(0x0b);
     write_uleb128(static_cast<uint32_t>(value.size()));

@@ -48,6 +48,10 @@ namespace osuReplayEditor.MetadataEditor
 
         public bool IsEasy { get; private set; }
 
+        public bool IsDoubleTime { get; private set; }
+
+        public bool IsHalfTime { get; private set; }
+
 
         public DateTime PlayTimestamp
         {
@@ -102,16 +106,22 @@ namespace osuReplayEditor.MetadataEditor
                 radioButtonFCNo.Checked = true;
             uint mods = API.Replay_GetMods();
             checkBoxNoFail.Checked = getMod(mods, ModNoFail);
+            // Set IsEasy.
             IsEasy = getMod(mods, ModEasy);
             checkBoxEasy.Checked = IsEasy;
             checkBoxTouchDevice.Checked = getMod(mods, ModTouchDevice);
             checkBoxHidden.Checked = getMod(mods, ModHidden);
+            // Set IsHardRock.
             IsHardRock = getMod(mods, ModHardRock);
             checkBoxHardRock.Checked = IsHardRock;
             checkBoxSuddenDeath.Checked = getMod(mods, ModSuddenDeath);
-            checkBoxDoubleTime.Checked = getMod(mods, ModDoubleTime);
+            // Set IsDoubleTime.
+            IsDoubleTime = getMod(mods, ModDoubleTime);
+            checkBoxDoubleTime.Checked = IsDoubleTime;
             checkBoxRelax.Checked = getMod(mods, ModRelax);
-            checkBoxHalfTime.Checked = getMod(mods, ModHalfTime);
+            // Set IsHalfTime.
+            IsHalfTime = getMod(mods, ModHalfTime);
+            checkBoxHalfTime.Checked = IsHalfTime;
             checkBoxNightcore.Checked = getMod(mods, ModNightcore);
             checkBoxFlashlight.Checked = getMod(mods, ModFlashlight);
             checkBoxAutoplay.Checked = getMod(mods, ModAutoplay);
@@ -197,8 +207,9 @@ namespace osuReplayEditor.MetadataEditor
 
         private string getPlayerName()
         {
-            byte[] buf = new byte[255];
-            int len = buf.Length;
+            int len = 0;
+            API.Replay_GetPlayerName(null, ref len);
+            byte[] buf = new byte[len];
             API.Replay_GetPlayerName(buf, ref len);
             return System.Text.Encoding.ASCII.GetString(buf, 0, len);
         }
