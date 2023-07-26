@@ -1185,6 +1185,7 @@ namespace osuReplayEditor
             // 
             // isKeyboard
             // 
+			this.keyPress12Btn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.isKeyboard.AutoSize = true;
             this.isKeyboard.Checked = true;
             this.isKeyboard.CheckState = System.Windows.Forms.CheckState.Checked;
