@@ -39,6 +39,7 @@ namespace osuReplayEditor
             this.undoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.redoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.quickLoadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.configToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.githubToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.githubToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.keybindReferenceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -126,7 +127,6 @@ namespace osuReplayEditor
             this.currentHitObjectLabel = new System.Windows.Forms.Label();
             this.timelineControl = new osuReplayEditor.TimelineControl();
             this.canvas = new osuReplayEditor.Canvas();
-            this.configToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.isKeyboard = new System.Windows.Forms.CheckBox();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.volumeBar)).BeginInit();
@@ -220,6 +220,13 @@ namespace osuReplayEditor
             this.quickLoadToolStripMenuItem.Size = new System.Drawing.Size(79, 20);
             this.quickLoadToolStripMenuItem.Text = "Quick Load";
             this.quickLoadToolStripMenuItem.DropDownOpening += new System.EventHandler(this.quickLoadToolStripMenuItem_DropDownOpening);
+            // 
+            // configToolStripMenuItem
+            // 
+            this.configToolStripMenuItem.Name = "configToolStripMenuItem";
+            this.configToolStripMenuItem.Size = new System.Drawing.Size(55, 20);
+            this.configToolStripMenuItem.Text = "Config";
+            this.configToolStripMenuItem.Click += new System.EventHandler(this.configToolStripMenuItem_Click);
             // 
             // githubToolStripMenuItem
             // 
@@ -628,7 +635,7 @@ namespace osuReplayEditor
             // keyPressNoneBtn
             // 
             this.keyPressNoneBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.keyPressNoneBtn.Location = new System.Drawing.Point(198, 530);
+            this.keyPressNoneBtn.Location = new System.Drawing.Point(198, 531);
             this.keyPressNoneBtn.Name = "keyPressNoneBtn";
             this.keyPressNoneBtn.Size = new System.Drawing.Size(75, 23);
             this.keyPressNoneBtn.TabIndex = 30;
@@ -1176,22 +1183,17 @@ namespace osuReplayEditor
             this.canvas.MouseMove += new System.Windows.Forms.MouseEventHandler(this.canvas_MouseMove);
             this.canvas.MouseUp += new System.Windows.Forms.MouseEventHandler(this.canvas_MouseUp);
             // 
-            // configToolStripMenuItem
             // isKeyboard
             // 
-            this.configToolStripMenuItem.Name = "configToolStripMenuItem";
-            this.configToolStripMenuItem.Size = new System.Drawing.Size(55, 20);
-            this.configToolStripMenuItem.Text = "Config";
-            this.configToolStripMenuItem.Click += new System.EventHandler(this.configToolStripMenuItem_Click);
-            this.isKeyboard.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.isKeyboard.AutoSize = true;
             this.isKeyboard.Checked = true;
             this.isKeyboard.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.isKeyboard.Location = new System.Drawing.Point(696, 659);
+            this.isKeyboard.Location = new System.Drawing.Point(522, 534);
             this.isKeyboard.Name = "isKeyboard";
-            this.isKeyboard.Size = new System.Drawing.Size(101, 20);
-            this.isKeyboard.TabIndex = 79;
+            this.isKeyboard.Size = new System.Drawing.Size(82, 17);
+            this.isKeyboard.TabIndex = 80;
             this.isKeyboard.Text = "Is Keyboard";
+            this.isKeyboard.UseVisualStyleBackColor = true;
             // 
             // MainForm
             // 
