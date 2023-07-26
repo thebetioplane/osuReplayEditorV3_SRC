@@ -73,8 +73,7 @@ namespace osuReplayEditor
             this.markAllBtn = new System.Windows.Forms.Button();
             this.keyPressK1Btn = new System.Windows.Forms.Button();
             this.keyPressK2Btn = new System.Windows.Forms.Button();
-            this.keyPressM2Btn = new System.Windows.Forms.Button();
-            this.keyPressM1Btn = new System.Windows.Forms.Button();
+            this.keyPressK12Btn = new System.Windows.Forms.Button();
             this.keyPressNoneBtn = new System.Windows.Forms.Button();
             this.trailLengthBar = new System.Windows.Forms.TrackBar();
             this.trailLengthInfoLabel = new System.Windows.Forms.Label();
@@ -128,6 +127,7 @@ namespace osuReplayEditor
             this.timelineControl = new osuReplayEditor.TimelineControl();
             this.canvas = new osuReplayEditor.Canvas();
             this.configToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.isKeyboard = new System.Windows.Forms.CheckBox();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.volumeBar)).BeginInit();
             this.playbackSpeedPanel.SuspendLayout();
@@ -601,7 +601,7 @@ namespace osuReplayEditor
             this.keyPressK1Btn.TabIndex = 34;
             this.keyPressK1Btn.Text = "Key 1";
             this.keyPressK1Btn.UseVisualStyleBackColor = true;
-            this.keyPressK1Btn.Click += new System.EventHandler(this.keyPressK1Btn_Click);
+            this.keyPressK1Btn.Click += new System.EventHandler(this.keyPress1Btn_Click);
             // 
             // keyPressK2Btn
             // 
@@ -612,29 +612,18 @@ namespace osuReplayEditor
             this.keyPressK2Btn.TabIndex = 33;
             this.keyPressK2Btn.Text = "Key 2";
             this.keyPressK2Btn.UseVisualStyleBackColor = true;
-            this.keyPressK2Btn.Click += new System.EventHandler(this.keyPressK2Btn_Click);
+            this.keyPressK2Btn.Click += new System.EventHandler(this.keyPress2Btn_Click);
             // 
-            // keyPressM2Btn
+            // keyPressK12Btn
             // 
-            this.keyPressM2Btn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.keyPressM2Btn.Location = new System.Drawing.Point(522, 531);
-            this.keyPressM2Btn.Name = "keyPressM2Btn";
-            this.keyPressM2Btn.Size = new System.Drawing.Size(75, 23);
-            this.keyPressM2Btn.TabIndex = 32;
-            this.keyPressM2Btn.Text = "Mouse 2";
-            this.keyPressM2Btn.UseVisualStyleBackColor = true;
-            this.keyPressM2Btn.Click += new System.EventHandler(this.keyPressM2Btn_Click);
-            // 
-            // keyPressM1Btn
-            // 
-            this.keyPressM1Btn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.keyPressM1Btn.Location = new System.Drawing.Point(441, 531);
-            this.keyPressM1Btn.Name = "keyPressM1Btn";
-            this.keyPressM1Btn.Size = new System.Drawing.Size(75, 23);
-            this.keyPressM1Btn.TabIndex = 31;
-            this.keyPressM1Btn.Text = "Mouse 1";
-            this.keyPressM1Btn.UseVisualStyleBackColor = true;
-            this.keyPressM1Btn.Click += new System.EventHandler(this.keyPressM1Btn_Click);
+            this.keyPressK12Btn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.keyPressK12Btn.Location = new System.Drawing.Point(441, 531);
+            this.keyPressK12Btn.Name = "keyPressK12Btn";
+            this.keyPressK12Btn.Size = new System.Drawing.Size(75, 23);
+            this.keyPressK12Btn.TabIndex = 31;
+            this.keyPressK12Btn.Text = "Key 1 + 2";
+            this.keyPressK12Btn.UseVisualStyleBackColor = true;
+            this.keyPressK12Btn.Click += new System.EventHandler(this.keyPress12Btn_Click);
             // 
             // keyPressNoneBtn
             // 
@@ -1188,11 +1177,21 @@ namespace osuReplayEditor
             this.canvas.MouseUp += new System.Windows.Forms.MouseEventHandler(this.canvas_MouseUp);
             // 
             // configToolStripMenuItem
+            // isKeyboard
             // 
             this.configToolStripMenuItem.Name = "configToolStripMenuItem";
             this.configToolStripMenuItem.Size = new System.Drawing.Size(55, 20);
             this.configToolStripMenuItem.Text = "Config";
             this.configToolStripMenuItem.Click += new System.EventHandler(this.configToolStripMenuItem_Click);
+            this.isKeyboard.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.isKeyboard.AutoSize = true;
+            this.isKeyboard.Checked = true;
+            this.isKeyboard.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.isKeyboard.Location = new System.Drawing.Point(696, 659);
+            this.isKeyboard.Name = "isKeyboard";
+            this.isKeyboard.Size = new System.Drawing.Size(101, 20);
+            this.isKeyboard.TabIndex = 79;
+            this.isKeyboard.Text = "Is Keyboard";
             // 
             // MainForm
             // 
@@ -1200,6 +1199,7 @@ namespace osuReplayEditor
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1184, 661);
+            this.Controls.Add(this.isKeyboard);
             this.Controls.Add(this.currentHitObjectLabel);
             this.Controls.Add(this.nextObjectBtn);
             this.Controls.Add(this.hitObjectPointsLabel);
@@ -1242,8 +1242,7 @@ namespace osuReplayEditor
             this.Controls.Add(this.trailLengthBar);
             this.Controls.Add(this.keyPressK1Btn);
             this.Controls.Add(this.keyPressK2Btn);
-            this.Controls.Add(this.keyPressM2Btn);
-            this.Controls.Add(this.keyPressM1Btn);
+            this.Controls.Add(this.keyPressK12Btn);
             this.Controls.Add(this.keyPressNoneBtn);
             this.Controls.Add(this.markAllBtn);
             this.Controls.Add(this.keypressInfoLabel);
@@ -1334,8 +1333,7 @@ namespace osuReplayEditor
         private System.Windows.Forms.Button markAllBtn;
         private System.Windows.Forms.Button keyPressK1Btn;
         private System.Windows.Forms.Button keyPressK2Btn;
-        private System.Windows.Forms.Button keyPressM2Btn;
-        private System.Windows.Forms.Button keyPressM1Btn;
+        private System.Windows.Forms.Button keyPressK12Btn;
         private System.Windows.Forms.Button keyPressNoneBtn;
         private System.Windows.Forms.TrackBar trailLengthBar;
         private System.Windows.Forms.Label trailLengthInfoLabel;
@@ -1396,6 +1394,7 @@ namespace osuReplayEditor
         private System.Windows.Forms.ToolStripMenuItem analyzeAccTraceToolStripMenuItem;
         private System.Windows.Forms.Label currentHitObjectLabel;
         private System.Windows.Forms.ToolStripMenuItem configToolStripMenuItem;
+        private System.Windows.Forms.CheckBox isKeyboard;
     }
 }
 

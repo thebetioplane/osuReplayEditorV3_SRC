@@ -414,24 +414,20 @@ namespace osuReplayEditor
             this.SetFrameKeyPress(0);
         }
 
-        private void keyPressK1Btn_Click(object sender, EventArgs e)
+        private void keyPress1Btn_Click(object sender, EventArgs e)
         {
-            this.SetFrameKeyPress(5);
+            
+            this.SetFrameKeyPress(this.isKeyboard.Checked ? 5 : 1);
         }
 
-        private void keyPressK2Btn_Click(object sender, EventArgs e)
+        private void keyPress2Btn_Click(object sender, EventArgs e)
         {
-            this.SetFrameKeyPress(10);
+            this.SetFrameKeyPress(this.isKeyboard.Checked ? 10 : 2);
         }
 
-        private void keyPressM1Btn_Click(object sender, EventArgs e)
+        private void keyPress12Btn_Click(object sender, EventArgs e)
         {
-            this.SetFrameKeyPress(1);
-        }
-
-        private void keyPressM2Btn_Click(object sender, EventArgs e)
-        {
-            this.SetFrameKeyPress(2);
+            this.SetFrameKeyPress(this.isKeyboard.Checked ? 15 : 3);
         }
 
         private void SetFrameKeyPress(int mask)
@@ -496,13 +492,13 @@ namespace osuReplayEditor
                     case Keys.S:
                         this.togglePauseBtn_Click(null, null);
                         break;
-                    case Keys.I:
+                    case Keys.Q:
                         this.markInBtn_Click(null, null);
                         break;
-                    case Keys.O:
+                    case Keys.E:
                         this.markOutBtn_Click(null, null);
                         break;
-                    case Keys.M:
+                    case Keys.W:
                         this.markMidBtn_Click(null, null);
                         break;
                     case Keys.D1:
@@ -521,6 +517,18 @@ namespace osuReplayEditor
                         break;
                     case Keys.OemOpenBrackets:
                         this.incBrushRadiusTrackBarValue(-5);
+                        break;
+                    case Keys.Z:
+                        this.keyPressNoneBtn_Click(null, null);
+                        break;
+                    case Keys.X:
+                        this.keyPress1Btn_Click(null, null);
+                        break;
+                    case Keys.C:
+                        this.keyPress2Btn_Click(null, null);
+                        break;
+                    case Keys.V:
+                        this.keyPress12Btn_Click(null, null);
                         break;
                 }
             }
@@ -664,7 +672,7 @@ namespace osuReplayEditor
 
         private void keybindReferenceToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("A - scrub backwards\nD - scrub forwards\n\n(scrub speed dependent on playback speed... for finer control lower the playback speed)\n\nS - toggle play / pause\nI - mark in\nO - mark out\nM - mark mid\nMouse wheel - zoom\nRight click - pan\nR - reset zoom pan\nCtrl+Z - undo\nCtrl+Y - redo\n[ - decrease brush size\n] - increase brush size", "Keybind Reference", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("A - scrub backwards\nD - scrub forwards\n\n(scrub speed dependent on playback speed... for finer control lower the playback speed)\n\nS - toggle play / pause\nQ - mark in\nE - mark out\nW - mark mid\nZ - set no keys for selection\nX - set K1 for selection\nC - set K2 for selection\nV - set K1 and K2 for selection\nMouse wheel - zoom\nRight click - pan\nR - reset zoom pan\nCtrl+Z - undo\nCtrl+Y - redo\n[ - decrease brush size\n] - increase brush size", "Keybind Reference", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private string getKindString(int kind)
