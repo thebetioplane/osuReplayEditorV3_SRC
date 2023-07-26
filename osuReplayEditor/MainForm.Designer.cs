@@ -72,9 +72,9 @@ namespace osuReplayEditor
             this.markerInfoLabel = new System.Windows.Forms.Label();
             this.keypressInfoLabel = new System.Windows.Forms.Label();
             this.markAllBtn = new System.Windows.Forms.Button();
-            this.keyPressK1Btn = new System.Windows.Forms.Button();
-            this.keyPressK2Btn = new System.Windows.Forms.Button();
-            this.keyPressK12Btn = new System.Windows.Forms.Button();
+            this.keyPress1Btn = new System.Windows.Forms.Button();
+            this.keyPress2Btn = new System.Windows.Forms.Button();
+            this.keyPress12Btn = new System.Windows.Forms.Button();
             this.keyPressNoneBtn = new System.Windows.Forms.Button();
             this.trailLengthBar = new System.Windows.Forms.TrackBar();
             this.trailLengthInfoLabel = new System.Windows.Forms.Label();
@@ -599,38 +599,38 @@ namespace osuReplayEditor
             this.markAllBtn.UseVisualStyleBackColor = true;
             this.markAllBtn.Click += new System.EventHandler(this.markAllBtn_Click);
             // 
-            // keyPressK1Btn
+            // keyPress1Btn
             // 
-            this.keyPressK1Btn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.keyPressK1Btn.Location = new System.Drawing.Point(279, 531);
-            this.keyPressK1Btn.Name = "keyPressK1Btn";
-            this.keyPressK1Btn.Size = new System.Drawing.Size(75, 23);
-            this.keyPressK1Btn.TabIndex = 34;
-            this.keyPressK1Btn.Text = "Key 1";
-            this.keyPressK1Btn.UseVisualStyleBackColor = true;
-            this.keyPressK1Btn.Click += new System.EventHandler(this.keyPress1Btn_Click);
+            this.keyPress1Btn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.keyPress1Btn.Location = new System.Drawing.Point(279, 531);
+            this.keyPress1Btn.Name = "keyPress1Btn";
+            this.keyPress1Btn.Size = new System.Drawing.Size(75, 23);
+            this.keyPress1Btn.TabIndex = 34;
+            this.keyPress1Btn.Text = "Key 1";
+            this.keyPress1Btn.UseVisualStyleBackColor = true;
+            this.keyPress1Btn.Click += new System.EventHandler(this.keyPress1Btn_Click);
             // 
-            // keyPressK2Btn
+            // keyPress2Btn
             // 
-            this.keyPressK2Btn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.keyPressK2Btn.Location = new System.Drawing.Point(360, 531);
-            this.keyPressK2Btn.Name = "keyPressK2Btn";
-            this.keyPressK2Btn.Size = new System.Drawing.Size(75, 23);
-            this.keyPressK2Btn.TabIndex = 33;
-            this.keyPressK2Btn.Text = "Key 2";
-            this.keyPressK2Btn.UseVisualStyleBackColor = true;
-            this.keyPressK2Btn.Click += new System.EventHandler(this.keyPress2Btn_Click);
+            this.keyPress2Btn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.keyPress2Btn.Location = new System.Drawing.Point(360, 531);
+            this.keyPress2Btn.Name = "keyPress2Btn";
+            this.keyPress2Btn.Size = new System.Drawing.Size(75, 23);
+            this.keyPress2Btn.TabIndex = 33;
+            this.keyPress2Btn.Text = "Key 2";
+            this.keyPress2Btn.UseVisualStyleBackColor = true;
+            this.keyPress2Btn.Click += new System.EventHandler(this.keyPress2Btn_Click);
             // 
-            // keyPressK12Btn
+            // keyPress12Btn
             // 
-            this.keyPressK12Btn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.keyPressK12Btn.Location = new System.Drawing.Point(441, 531);
-            this.keyPressK12Btn.Name = "keyPressK12Btn";
-            this.keyPressK12Btn.Size = new System.Drawing.Size(75, 23);
-            this.keyPressK12Btn.TabIndex = 31;
-            this.keyPressK12Btn.Text = "Key 1 + 2";
-            this.keyPressK12Btn.UseVisualStyleBackColor = true;
-            this.keyPressK12Btn.Click += new System.EventHandler(this.keyPress12Btn_Click);
+            this.keyPress12Btn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.keyPress12Btn.Location = new System.Drawing.Point(441, 531);
+            this.keyPress12Btn.Name = "keyPress12Btn";
+            this.keyPress12Btn.Size = new System.Drawing.Size(75, 23);
+            this.keyPress12Btn.TabIndex = 31;
+            this.keyPress12Btn.Text = "Key 1 + 2";
+            this.keyPress12Btn.UseVisualStyleBackColor = true;
+            this.keyPress12Btn.Click += new System.EventHandler(this.keyPress12Btn_Click);
             // 
             // keyPressNoneBtn
             // 
@@ -1242,9 +1242,9 @@ namespace osuReplayEditor
             this.Controls.Add(this.cursorTrailValueLabel);
             this.Controls.Add(this.trailLengthInfoLabel);
             this.Controls.Add(this.trailLengthBar);
-            this.Controls.Add(this.keyPressK1Btn);
-            this.Controls.Add(this.keyPressK2Btn);
-            this.Controls.Add(this.keyPressK12Btn);
+            this.Controls.Add(this.keyPress1Btn);
+            this.Controls.Add(this.keyPress2Btn);
+            this.Controls.Add(this.keyPress12Btn);
             this.Controls.Add(this.keyPressNoneBtn);
             this.Controls.Add(this.markAllBtn);
             this.Controls.Add(this.keypressInfoLabel);
@@ -1333,9 +1333,9 @@ namespace osuReplayEditor
         private System.Windows.Forms.Label markerInfoLabel;
         private System.Windows.Forms.Label keypressInfoLabel;
         private System.Windows.Forms.Button markAllBtn;
-        private System.Windows.Forms.Button keyPressK1Btn;
-        private System.Windows.Forms.Button keyPressK2Btn;
-        private System.Windows.Forms.Button keyPressK12Btn;
+        private System.Windows.Forms.Button keyPress1Btn;
+        private System.Windows.Forms.Button keyPress2Btn;
+        private System.Windows.Forms.Button keyPress12Btn;
         private System.Windows.Forms.Button keyPressNoneBtn;
         private System.Windows.Forms.TrackBar trailLengthBar;
         private System.Windows.Forms.Label trailLengthInfoLabel;
