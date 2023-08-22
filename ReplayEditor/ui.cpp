@@ -122,7 +122,9 @@ static void draw_frames(const SongTime_t ms)
     if (ui::trail_mode == ui::TrailMode::Raw) {
         const glm::vec2 vertex_size(12.0f);
         for (auto iter = start; iter != end; ++iter) {
-            if (iter->pressed_mouse1()) {
+            if (iter->pressed_mouse1() && iter->pressed_mouse2()) {
+                glColorYellow();
+            } else if (iter->pressed_mouse1()) {
                 glColorCyan();
             } else if (iter->pressed_mouse2()) {
                 glColorMagenta();
