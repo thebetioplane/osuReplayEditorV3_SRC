@@ -406,6 +406,248 @@ void Replay::place_marks_at(I64 mark_in, I64 mark_out)
     place_mark_mid_avg();
 }
 
+template <class T>
+void increment_if_more(T &value, const T &comp)
+{
+    if (value > comp) ++value;
+}
+
+bool Replay::insert_new_frame(SongTime_t time)
+{
+    if (m_mark_in >= m_frames.size() or m_mark_in < 0) {
+        return 0;
+    }
+    
+    if (m_mark_in == m_frames.size() - 1) {
+        time = std::max(time, 1);
+
+        m_frames.push_back(
+            replayengine::ReplayFrame(time, m_frames[m_mark_in].p.x, m_frames[m_mark_in].p.y, m_frames[m_mark_in].keys));
+
+    } else {
+        if (m_frames[m_mark_in + 1].ms - m_frames[m_mark_in].ms <= 1) return 0;
+        time = std::clamp(time, 1, -1 - m_frames[m_mark_in].ms + m_frames[m_mark_in + 1].ms);
+
+        SongTime_t time_diff = m_frames[m_mark_in + 1].ms - m_frames[m_mark_in].ms;
+        float x_diff = m_frames[m_mark_in + 1].p.x - m_frames[m_mark_in].p.x;
+        float y_diff = m_frames[m_mark_in + 1].p.y - m_frames[m_mark_in].p.y;
+
+        float coord_x = m_frames[m_mark_in].p.x + x_diff * time / time_diff;
+        float coord_y = m_frames[m_mark_in].p.y + y_diff * time / time_diff;
+
+        m_frames.insert(m_frames.begin() + m_mark_in + 1, 
+            replayengine::ReplayFrame(m_frames[m_mark_in].ms + time, coord_x, coord_y, m_frames[m_mark_in].keys));
+
+        increment_if_more(m_current_frame_index, m_mark_in);
+        increment_if_more(m_mark_out, m_mark_in);
+        increment_if_more(m_mark_mid, m_mark_in);
+    }
+
+    return 1;
+}
+
+bool Replay::insert_new_frame_between()
+{
+    if (m_mark_in >= m_frames.size() or m_mark_in < 0) {
+        return 0;
+    }
+
+    if (m_mark_in == m_frames.size() - 1) {
+        const SongTime_t time = 10;
+
+        m_frames.push_back(
+            replayengine::ReplayFrame(time, m_frames[m_mark_in].p.x, m_frames[m_mark_in].p.y, m_frames[m_mark_in].keys));
+
+    } else {
+        if (m_frames[m_mark_in + 1].ms - m_frames[m_mark_in].ms <= 1) return 0;
+
+        SongTime_t time = (m_frames[m_mark_in].ms + m_frames[m_mark_in + 1].ms) / 2;
+        float coord_x = (m_frames[m_mark_in].p.x + m_frames[m_mark_in + 1].p.x) / 2;
+        float coord_y = (m_frames[m_mark_in].p.y + m_frames[m_mark_in + 1].p.y) / 2;
+
+        m_frames.insert(m_frames.begin() + m_mark_in + 1,
+                        replayengine::ReplayFrame(time, coord_x, coord_y, m_frames[m_mark_in].keys));
+
+        increment_if_more(m_current_frame_index, m_mark_in);
+        increment_if_more(m_mark_out, m_mark_in);
+        increment_if_more(m_mark_mid, m_mark_in);
+    }
+
+    return 1;
+}
+
+bool Replay::delete_frames_range()
+{
+    if (m_current_frame_index > m_mark_in)
+    {
+        if (m_current_frame_index <= m_mark_out)
+            m_current_frame_index = m_mark_in;
+        else
+            m_current_frame_index -= m_mark_out - m_mark_in + 1;
+    }
+
+    m_frames.erase(m_frames.begin() + m_mark_in, m_frames.begin() + m_mark_out + 1);
+    m_mark_in = -1;
+    m_mark_out = -1;
+
+    return true;
+}
+
+bool Replay::move_frame(SongTime_t time)
+{
+     
+    if (m_mark_in >= m_frames.size() or m_mark_in < 0)
+    {
+        return false;
+    } 
+
+    if (m_mark_in == 0)
+    {
+        time = std::clamp(time, 1, -1 - m_frames[m_mark_in].ms + m_frames[m_mark_in + 1].ms);
+        
+    } 
+    else if (m_mark_in == m_frames.size() - 1)
+    {
+        time = std::max(time, 1 - m_frames[m_mark_in].ms + m_frames[m_mark_in - 1].ms);
+    }
+    else
+    {
+        time = std::clamp(time, 
+            1 - m_frames[m_mark_in].ms + m_frames[m_mark_in - 1].ms,
+            -1 - m_frames[m_mark_in].ms + m_frames[m_mark_in + 1].ms);
+        
+    }
+
+    m_frames[m_mark_in].ms += time;
+
+    return time != 0;
+}
+
+bool Replay::move_frames_range(SongTime_t time)
+{
+    if (m_mark_in == m_mark_out) {
+        return move_frame(time);
+    } 
+
+    if (m_mark_in == 0) {
+        time = std::clamp(time, 0, -1 - m_frames[m_mark_out].ms + m_frames[m_mark_out + 1].ms);
+    } 
+    else if (m_mark_out == m_frames.size() - 1) {
+        time = std::max(time, 1 - m_frames[m_mark_in].ms + m_frames[m_mark_in - 1].ms);
+    } 
+    else {
+        time = std::clamp(time, 
+            1 - m_frames[m_mark_in].ms + m_frames[m_mark_in - 1].ms, 
+            -1 - m_frames[m_mark_out].ms + m_frames[m_mark_out + 1].ms);
+    }
+
+    for (auto frame = m_frames.begin() + m_mark_in; frame != m_frames.begin() + m_mark_out + 1; ++frame) {
+        frame->ms += time;
+    }
+
+    return time != 0;
+}
+
+bool Replay::center_frame()
+{
+    if (m_mark_in >= m_frames.size() - 1 or m_mark_in < 0) {
+        return false;
+    }
+
+
+    if (m_mark_in == 0) {
+        SongTime_t new_time = m_frames[m_mark_in + 1].ms / 2;
+        new_time = std::clamp(new_time, 1, m_frames[m_mark_in + 1].ms - 1);
+        m_frames[m_mark_in].ms = new_time;
+    } else {
+        SongTime_t new_time = (m_frames[m_mark_in - 1].ms + m_frames[m_mark_in + 1].ms) / 2;
+        new_time = std::clamp(new_time, m_frames[m_mark_in - 1].ms + 1, m_frames[m_mark_in + 1].ms - 1);
+        m_frames[m_mark_in].ms = new_time;
+    }
+    return true;
+}
+
+bool Replay::center_frames_range()
+{
+    if (m_mark_in == m_mark_out) {
+        return center_frame();
+    } 
+    I64 size = m_mark_out - m_mark_in;
+
+    if (m_mark_in == 0) {
+        SongTime_t difference = m_frames[m_mark_out + 1].ms - m_frames[m_mark_in].ms;
+        if (difference < size) return 0;
+
+        int i = 1;
+        double base = (double)difference / (size + 1);
+
+        for (auto frame = m_frames.begin() + m_mark_in + 1; frame != m_frames.begin() + m_mark_out + 1; ++frame) {
+            frame->ms = m_frames[m_mark_in].ms + base * i;
+            ++i;
+        }
+    } 
+    else if (m_mark_out == m_frames.size() - 1) {
+        SongTime_t difference = m_frames[m_mark_out].ms - m_frames[m_mark_in - 1].ms;
+        if (difference < size) return 0;
+
+        int i = 1;
+        double base = (double)difference / (size + 1);
+
+        for (auto frame = m_frames.begin() + m_mark_in; frame != m_frames.begin() + m_mark_out; ++frame) {
+            frame->ms = m_frames[m_mark_in - 1].ms + base * i;
+            ++i;
+        }
+    } 
+    else {
+        ++size;
+        SongTime_t difference = m_frames[m_mark_out + 1].ms - m_frames[m_mark_in - 1].ms;
+        if (difference < size) return 0;
+
+        int i = 1;
+        double base = (double)difference / (size + 1);
+
+        for (auto frame = m_frames.begin() + m_mark_in; frame != m_frames.begin() + m_mark_out + 1; ++frame) {
+            frame->ms = m_frames[m_mark_in - 1].ms + base * i;
+            ++i;
+        }
+    }
+
+    return true;
+}
+
+bool Replay::scale_frames(float scale)
+{
+    if (m_mark_out != m_frames.size() - 1) {
+        SongTime_t initial_delta = m_frames[m_mark_out].ms - m_frames[m_mark_in].ms;
+        SongTime_t max_delta = m_frames[m_mark_out + 1].ms - m_frames[m_mark_in].ms - 1;
+        float maximum_scale = double(max_delta) / initial_delta;
+        scale = std::min(scale, maximum_scale);
+    }
+
+    for (auto frame = m_frames.begin() + m_mark_in + 1; frame != m_frames.begin() + m_mark_out + 1; ++frame) {
+        SongTime_t difference = frame->ms - m_frames[m_mark_in].ms;
+        difference = std::round((double)difference * scale);
+        frame->ms = std::max(m_frames[m_mark_in].ms + 1, m_frames[m_mark_in].ms + difference);
+    }
+
+    return true;
+}
+
+void Replay::mark_all_frames(bool is_keyboard)
+{
+    if (is_keyboard)
+        for (auto &frame : m_frames) {
+            if (frame.keys & 1) frame.keys |= 4;
+            if (frame.keys & 2) frame.keys |= 8;
+        }
+
+    else
+        for (auto &frame : m_frames) {
+            if (frame.keys & 1) frame.keys &= ~4;
+            if (frame.keys & 2) frame.keys &= ~8;
+        }
+}
+
 const Replay *CurrentView()
 {
     return local_history_stack.current();

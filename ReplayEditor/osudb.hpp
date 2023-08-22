@@ -15,5 +15,6 @@ namespace osudb
 
 bool init();
 bool get_entry(const std::string &hash, std::wstring &osu_path, std::wstring &song_path);
+bool get_hash(const std::wstring &osu_path, std::string &hash);
 
 }  // namespace osudb

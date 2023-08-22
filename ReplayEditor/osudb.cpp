@@ -21,6 +21,7 @@ struct osudb_entry_t {
 };
 
 std::map<std::string, osudb_entry_t> beatmaps;
+std::map<std::wstring, std::string> beatmaps_reverse;
 
 }  // namespace
 
@@ -121,6 +122,7 @@ bool init()
         entry.osu_path = string_to_wstring(folder_name + '/' + partial_osu_path);
         entry.song_path = string_to_wstring(folder_name + '/' + partial_song_path);
         beatmaps.insert({hash, entry});
+        beatmaps_reverse.insert({entry.osu_path, hash});
     }
     return true;
 }
@@ -131,6 +133,14 @@ bool get_entry(const std::string &hash, std::wstring &osu_path, std::wstring &so
     if (entry == beatmaps.end()) return false;
     osu_path = entry->second.osu_path;
     song_path = entry->second.song_path;
+    return true;
+}
+
+bool get_hash(const std::wstring &osu_path, std::string &hash)
+{
+    auto entry = beatmaps_reverse.find(osu_path);
+    if (entry == beatmaps_reverse.end()) return false;
+    hash = entry->second;
     return true;
 }
 

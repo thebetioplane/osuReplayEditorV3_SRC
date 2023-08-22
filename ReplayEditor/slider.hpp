@@ -10,6 +10,10 @@
 struct pos_time_t {
     glm::vec2 pos;
     SongTime_t time;
+
+    pos_time_t(glm::vec2 pos_, SongTime_t time_) : pos(pos_), time(time_)
+    {
+    }
 };
 
 class slider_t
@@ -32,8 +36,9 @@ class slider_t
     }
     glm::vec2 end_pos() const;
     static slider_t *from_def(const char *def, glm::vec2 pos, SongTime_t start, SongTime_t end);
-    void draw(SongTime_t ms, SongTime_t start, SongTime_t end, float opacity);
+    void draw(SongTime_t ms, SongTime_t start, SongTime_t end, float opacity, bool draw_true_slider_end);
     void translate_offset(const glm::vec2 &offset);
     bool ball_position_at_time(SongTime_t ms, SongTime_t start, SongTime_t end, glm::vec2 &out_pos) const;
     bool position_at_time(SongTime_t ms, SongTime_t start, SongTime_t end, glm::vec2 &out_pos) const;
+    bool position_at_time(SongTime_t ms, glm::vec2 &out_pos) const;
 };

@@ -20,6 +20,10 @@
 ui::TrailMode ui::trail_mode = ui::TrailMode::Hits;
 SongTime_t ui::trail_length = 1000;
 
+bool ui::draw_frames_on_timeline = true;
+bool ui::draw_hitwindows_on_timeline = true;
+bool ui::draw_sliderend_range = false;
+
 static glm::vec2 pan_start;
 static glm::vec2 pan_mouse_start;
 static bool is_panning = false;
@@ -89,7 +93,7 @@ static void quad_vertex(const glm::vec2 &p, const glm::vec2 &d)
     glVertex2f(p.x, p.y + d.y);
 }
 
-static void draw_frames(const SongTime_t ms)
+static void draw_frames(const SongTime_t ms, bool draw_frames_on_timeline)
 {
     using namespace replayengine;
     if (ui::trail_mode == ui::TrailMode::Off) return;
@@ -209,10 +213,18 @@ static void draw_frames(const SongTime_t ms)
                 IS_RELEASE(prev_mouse1, prev_mouse2, curr->pressed_mouse1(), curr->pressed_mouse2());
             prev_mouse1 = curr->pressed_mouse1();
             prev_mouse2 = curr->pressed_mouse2();
+
+            const float xpos = 2.f * RATIO(curr->ms - ms, ui::trail_length) + 1.f;
+
             if (!is_press && !is_release) {
+                if (draw_frames_on_timeline) {
+                    glColorWhite();
+                    glVertex2f(xpos, bar_top_y - bar_height / 4);
+                    glVertex2f(xpos, bar_top_y + bar_height / 4);
+                }
                 continue;
             }
-            const float xpos = 2.f * RATIO(curr->ms - ms, ui::trail_length) + 1.f;
+            
             if (is_press) {
                 glColorYellow();
             } else {
@@ -222,14 +234,61 @@ static void draw_frames(const SongTime_t ms)
             glVertex2f(xpos, bar_top_y + bar_height);
         }
         glEnd();
+
         glEnable(GL_TEXTURE_2D);
         glPopMatrix();
     }
 }
 
+void ui::draw_frame_lines(SongTime_t ms)
+{
+    using namespace replayengine;
+
+    const std::vector<ReplayFrame> &frames = CurrentView()->frames();
+    auto start = std::lower_bound(frames.begin(), frames.end(), ms - ui::trail_length, CmpMs<ReplayFrame>());
+    auto end = std::lower_bound(frames.begin(), frames.end(), ms, CmpMs<ReplayFrame>());
+    if (start == frames.end()) return;
+    if (end != frames.end()) ++end;
+
+    
+    constexpr float bar_top_y = -0.95f;
+    constexpr float bar_height = 0.05f;
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glDisable(GL_TEXTURE_2D);
+
+    glEnd();
+    glBegin(GL_LINES);
+    bool prev_mouse1 = false;
+    bool prev_mouse2 = false;
+    for (auto curr = start; curr != end; ++curr) {
+        const bool is_press = IS_PRESSED(prev_mouse1, prev_mouse2, curr->pressed_mouse1(), curr->pressed_mouse2());
+        const bool is_release =
+            IS_RELEASE(prev_mouse1, prev_mouse2, curr->pressed_mouse1(), curr->pressed_mouse2());
+        prev_mouse1 = curr->pressed_mouse1();
+        prev_mouse2 = curr->pressed_mouse2();
+
+        const float xpos = 2.f * RATIO(curr->ms - ms, ui::trail_length) + 1.f;
+
+        if (!is_press && !is_release) {
+            if (draw_frames_on_timeline) {
+                glColorWhite();
+                glVertex2f(xpos, bar_top_y - bar_height / 4);
+                glVertex2f(xpos, bar_top_y + bar_height / 4);
+            }
+            continue;
+        }
+    }
+    glEnd();
+
+    glEnable(GL_TEXTURE_2D);
+    glPopMatrix();
+}
+
 void ui::draw(SongTime_t ms)
 {
-    draw_frames(ms);
+    draw_frames(ms, draw_frames_on_timeline);
     tool::current_tool->Draw();
 }
 

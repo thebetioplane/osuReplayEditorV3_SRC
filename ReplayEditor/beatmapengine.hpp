@@ -11,7 +11,9 @@ namespace beatmapengine
 bool init(const std::wstring &f);
 float slider_velocity_at(SongTime_t);
 float beat_length_at(SongTime_t);
-void draw(SongTime_t);
+void draw(SongTime_t, bool);
+void draw_windows(SongTime_t);
+extern std::wstring path;
 extern std::vector<hitobject_t> hitobjects;
 extern float stack_leniency;
 extern float hp;

@@ -66,8 +66,9 @@ class hitobject_t
     hitobject_t(const glm::vec2& my_pos, SongTime_t my_start, SongTime_t my_end,
                 HitObjectType my_hit_object_type) noexcept;
     void destroy();
-    void draw_bg(SongTime_t) const;
+    void draw_bg(SongTime_t, bool) const;
     void draw_fg(SongTime_t) const;
+    void draw_window(SongTime_t, SongTime_t) const;
     bool operator<(const hitobject_t& rhs) const
     {
         return animation_start() < rhs.animation_start();

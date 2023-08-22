@@ -302,6 +302,8 @@ slider_t *slider_t::from_def(const char *def, glm::vec2 pos, SongTime_t start, S
     const float velocity = beatmapengine::slider_mult * beatmapengine::slider_velocity_at(start);
     slider_t *obj = new slider_t(repeat, pixel_length, velocity);
     constexpr float p_dist_thresh = 0.01f;
+
+    //obj->curve.emplace_back(pos, start);
     switch (slider_type) {
         case 'L': {
             obj->s_linear(pts, start, end);
@@ -347,13 +349,22 @@ glm::vec2 slider_t::end_pos() const
     return curve[curve.size() - 1].pos;
 }
 
-void slider_t::draw(SongTime_t ms, SongTime_t start, SongTime_t end, float opacity)
+SongTime_t last_tick_offset = 36;
+
+void slider_t::draw(SongTime_t ms, SongTime_t start, SongTime_t end, float opacity, bool draw_true_slider_end)
 {
     const glm::vec2 size = glm::vec2(beatmapengine::circleradius() * 2.0f);
     glColor4f(opacity, opacity, opacity, 1.0);
     bool draw_slider_ball = false;
     glm::vec2 slider_ball_pos{0.f, 0.f};
     draw_slider_ball = ball_position_at_time(ms, start, end, slider_ball_pos);
+
+    SongTime_t true_slider_end_time = std::max(float(end - last_tick_offset), end - duration() / 2);
+    glm::vec2 true_slider_end_pos{0.f, 0.f};
+    auto true_slider_end_size = size * 2.4f;
+
+    if (draw_true_slider_end) ball_position_at_time(true_slider_end_time, start, end, true_slider_end_pos);
+
     if (beatmapengine::hitobjects_inverted) {
         for (const auto &item : curve) {
             textures::slideredge->draw(invert_vec(item.pos), size * 0.5f, size);
@@ -361,6 +372,10 @@ void slider_t::draw(SongTime_t ms, SongTime_t start, SongTime_t end, float opaci
         glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
         for (const auto &item : curve) {
             textures::sliderbody->draw(invert_vec(item.pos), size * 0.5f, size);
+        }
+        if (draw_true_slider_end) {
+            glColor4f(0.0f, 1.0f, 1.0f, 0.5f * opacity);
+            textures::slideredge->draw(invert_vec(true_slider_end_pos), true_slider_end_size * 0.5f, true_slider_end_size);
         }
         if (draw_slider_ball) {
             glColor4f(0.552941f, 0.752941f, 0.513725f, 1.f);
@@ -374,10 +389,14 @@ void slider_t::draw(SongTime_t ms, SongTime_t start, SongTime_t end, float opaci
         for (const auto &item : curve) {
             textures::sliderbody->draw(item.pos, size * 0.5f, size);
         }
+        if (draw_true_slider_end) {
+            glColor4f(0.0f, 1.0f, 1.0f, 0.5f * opacity);
+            textures::slideredge->draw(true_slider_end_pos, true_slider_end_size * 0.5f, true_slider_end_size);
+        }
         if (draw_slider_ball) {
             glColor4f(0.552941f, 0.752941f, 0.513725f, 1.f);
             textures::slideredge->draw(slider_ball_pos, size * 0.5f, size);
-        }
+        } 
     }
 }
 
@@ -413,6 +432,20 @@ bool slider_t::position_at_time(SongTime_t ms, SongTime_t start, SongTime_t end,
             out_pos = glm::mix(prev_iter->pos, iter->pos, t);
             return true;
         }
+    }
+    return false;
+}
+
+bool slider_t::position_at_time(SongTime_t ms, glm::vec2 &out_pos) const
+{
+    auto iter =
+        std::upper_bound(curve.begin(), curve.end(), ms,
+                            [](const SongTime_t ms, const pos_time_t &pos_time) { return pos_time.time > ms; });
+    if (iter != curve.begin() && iter != curve.end()) {
+        auto prev_iter = iter - 1;
+        const float t = RATIO(ms - prev_iter->time, iter->time - prev_iter->time);
+        out_pos = glm::mix(prev_iter->pos, iter->pos, t);
+        return true;
     }
     return false;
 }
