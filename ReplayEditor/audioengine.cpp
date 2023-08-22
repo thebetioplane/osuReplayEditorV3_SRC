@@ -267,7 +267,7 @@ double BassAudioEngine::get_time()
     if (stream) {
         const QWORD byte_pos = BASS_ChannelGetPosition(stream, BASS_POS_BYTE);
         const double ms = BASS_ChannelBytes2Seconds(stream, byte_pos);
-        return ms * 1000. + 0.5;
+        return ms * 1000.0;
     } else {
         return 0;
     }
