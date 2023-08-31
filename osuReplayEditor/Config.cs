@@ -93,7 +93,10 @@ namespace osuReplayEditor
                         WriteComment(writer, "Required - Must have a value");
                         // since these values are almost guaranteed to be wrong until the user changes it
                         // only set the value to default value when it is required
-                        entry.Value.Value = entry.Value.DefaultValue;
+                        if (entry.Value.Value == null)
+                        {
+                            entry.Value.Value = entry.Value.DefaultValue;
+                        }
                     }
                     else
                     {
