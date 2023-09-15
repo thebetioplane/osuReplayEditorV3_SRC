@@ -13,6 +13,7 @@
 #include "hitobject.hpp"
 #include "replayengine.hpp"
 
+std::wstring beatmapengine::path;
 float beatmapengine::stack_leniency;
 float beatmapengine::hp;
 float beatmapengine::cs;
@@ -202,6 +203,7 @@ static void add_slider_ticks()
     using namespace beatmapengine;
     const size_t num_objects = hitobjects.size();
     constexpr size_t arbitrary_slider_tick_limit = 10000;
+    constexpr SongTime_t legacy_last_tick_offset = 36;
     for (size_t i = 0; i < num_objects; ++i) {
         if (!hitobjects[i].slider) continue;
         constexpr float slider_leniency = 10.f;
@@ -223,9 +225,12 @@ static void add_slider_ticks()
             }
             t += dt;
         }
+
+        const SongTime_t dur = static_cast<SongTime_t>(hitobjects[i].slider->duration());
+        SongTime_t this_tick_delay = 0;
+
         for (int k = 1; k < hitobjects[i].slider->repeat; ++k) {
-            const SongTime_t dur = static_cast<SongTime_t>(hitobjects[i].slider->duration());
-            const SongTime_t this_tick_delay = k * dur;
+            this_tick_delay = k * dur;
             const SongTime_t reverse_tick_aug = (k + 1) * dur + 2 * hitobjects[i].start;
             for (auto index : just_added) {
                 hitobjects.emplace_back(hitobjects[index]);
@@ -240,6 +245,21 @@ static void add_slider_ticks()
                     hitobjects.back().start = hitobjects.back().end;
                 }
             }
+        }
+        // sliderend
+        if ((hitobjects[i].slider->repeat % 2) == 0) {
+            this_tick_delay = this_tick_delay + 0; 
+        }
+        const SongTime_t slider_end_offset = std::max(dur / 2, dur - legacy_last_tick_offset);
+        const SongTime_t slider_end_adjusted_offset =
+            (hitobjects[i].slider->repeat % 2) == 0 ? dur - slider_end_offset : slider_end_offset;
+
+        hitobjects[i].slider->position_at_time(hitobjects[i].start + slider_end_adjusted_offset, hitobjects[i].start,
+                                               hitobjects[i].end, pos);
+        hitobjects.emplace_back(pos, hitobjects[i].start + this_tick_delay + slider_end_offset, hitobjects[i].end,
+                                HitObjectType::SliderEnd);
+        if (hitobjects.back().start > hitobjects.back().end) {
+            hitobjects.back().start = hitobjects.back().end;
         }
     }
 }
@@ -446,15 +466,49 @@ bool beatmapengine::init(const std::wstring &fname)
     return true;
 }
 
-void beatmapengine::draw(SongTime_t ms)
+void beatmapengine::draw(SongTime_t ms, bool draw_sliderend_range)
 {
     static std::vector<const hitobject_t *> objs_to_draw;
     objs_to_draw.clear();
     interval_tree_search(root_hitobject, ms, objs_to_draw);
     for (int i = static_cast<int>(objs_to_draw.size()) - 1; i >= 0; --i) {
-        objs_to_draw[i]->draw_bg(ms);
+        objs_to_draw[i]->draw_bg(ms, draw_sliderend_range);
     }
     for (int i = static_cast<int>(objs_to_draw.size()) - 1; i >= 0; --i) {
         objs_to_draw[i]->draw_fg(ms);
     }
+}
+
+const SongTime_t trail_length = 1000;
+
+void beatmapengine::draw_windows(SongTime_t ms)
+{
+    auto start = std::lower_bound(hitobjects.begin(), hitobjects.end(), ms - trail_length,
+                                  [](const hitobject_t &lhs, SongTime_t rhs) { return lhs.start < rhs; });
+    auto end = std::lower_bound(hitobjects.begin(), hitobjects.end(), ms,
+                                [](const hitobject_t &lhs, SongTime_t rhs) { return lhs.start < rhs; });
+    if (start == hitobjects.end()) return;
+    if (end != hitobjects.end()) ++end;
+
+    glPushMatrix();
+    glLoadIdentity();
+    glDisable(GL_TEXTURE_2D);
+
+    glColor4f(1, 0.5, 0, 1);
+    for (auto i = start; i != end; ++i) {
+        i->draw_window(ms, hitwindow50());
+    }
+
+    glColor4f(0, 1, 0, 1);
+    for (auto i = start; i != end; ++i) {
+        i->draw_window(ms, hitwindow100());
+    }
+
+    glColor4f(0, 0, 1, 1);  
+    for (auto i = start; i != end; ++i) {
+        i->draw_window(ms, hitwindow300());
+    }
+
+    glEnable(GL_TEXTURE_2D);
+    glPopMatrix();
 }

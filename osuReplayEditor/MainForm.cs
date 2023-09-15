@@ -1,6 +1,8 @@
 using System;
 using System.Windows.Forms;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Linq;
 
 namespace osuReplayEditor
 {
@@ -186,7 +188,8 @@ namespace osuReplayEditor
 
         private void FrameTimer_Tick(object sender, EventArgs e)
         {
-            int dt = (int)(15 * scrubMult);
+            //int dt = (int)(15 * scrubMult);
+            double dt = 15.0 * scrubMult;
             if (scrubRight)
             {
                 API.RelJump(dt);
@@ -200,7 +203,7 @@ namespace osuReplayEditor
 
         private void ScrollBarTimer_Tick(object sender, EventArgs e)
         {
-            int ms = API.GetTime();
+            int ms = (int)API.GetTime();
             this.timelineControl.Value = ms / (double)this.songMax;
             int ms2 = ms % 1000;
             int sec = (ms / 1000) % 60;
@@ -218,6 +221,11 @@ namespace osuReplayEditor
             API.SetVolume(this.volumeBar.Value / 10.0f);
             this.volumeLabel.Text = $"Volume {this.volumeBar.Value * 10}%";
             API.CfgSetVolume(this.volumeBar.Value);
+        }
+
+        private void playbackRadio005x_CheckedChanged(object sender, EventArgs e)
+        {
+            this.ChangePlaybackSpeed();
         }
 
         private void playbackRadio010x_CheckedChanged(object sender, EventArgs e)
@@ -250,10 +258,7 @@ namespace osuReplayEditor
             this.ChangePlaybackSpeed();
         }
 
-        private void playbackRadio200x_CheckedChanged(object sender, EventArgs e)
-        {
-            this.ChangePlaybackSpeed();
-        }
+        
 
         private void playbackRadio400x_CheckedChanged(object sender, EventArgs e)
         {
@@ -262,7 +267,9 @@ namespace osuReplayEditor
 
         private void ChangePlaybackSpeed()
         {
-            if (this.playbackRadio010x.Checked)
+            if (this.playbackRadio005x.Checked)
+                scrubMult = 0.05f;
+            else if(this.playbackRadio010x.Checked)
                 scrubMult = 0.10f;
             else if (this.playbackRadio025x.Checked)
                 scrubMult = 0.25f;
@@ -272,8 +279,6 @@ namespace osuReplayEditor
                 scrubMult = 0.75f;
             else if (this.playbackRadio150x.Checked)
                 scrubMult = 1.5f;
-            else if (this.playbackRadio200x.Checked)
-                scrubMult = 2.0f;
             else if (this.playbackRadio400x.Checked)
                 scrubMult = 4.0f;
             else
@@ -417,17 +422,17 @@ namespace osuReplayEditor
         private void keyPress1Btn_Click(object sender, EventArgs e)
         {
             
-            this.SetFrameKeyPress(this.isKeyboard.Checked ? 5 : 1);
+            this.SetFrameKeyPress(this.isKeyboardCB.Checked ? 5 : 1);
         }
 
         private void keyPress2Btn_Click(object sender, EventArgs e)
         {
-            this.SetFrameKeyPress(this.isKeyboard.Checked ? 10 : 2);
+            this.SetFrameKeyPress(this.isKeyboardCB.Checked ? 10 : 2);
         }
 
         private void keyPress12Btn_Click(object sender, EventArgs e)
         {
-            this.SetFrameKeyPress(this.isKeyboard.Checked ? 15 : 3);
+            this.SetFrameKeyPress(this.isKeyboardCB.Checked ? 15 : 3);
         }
 
         private void SetFrameKeyPress(int mask)
@@ -584,16 +589,32 @@ namespace osuReplayEditor
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            string replayPath = Config.mainConfig.ReplayDirPath;
+            this.openFileDialog1.InitialDirectory = replayPath;
+            this.openFileDialog1.RestoreDirectory = true;
             this.openFileDialog1.ShowDialog();
         }
 
         private void openFileDialog1_FileOk(object sender, System.ComponentModel.CancelEventArgs e)
         {
             this.LoadReplay(this.openFileDialog1.FileName);
+
+            int len = 0;
+            API.GetMapPath(null, ref len);
+            byte[] buf = new byte[len];
+            API.GetMapPath(buf, ref len);
+            string path = System.Text.Encoding.Unicode.GetString(buf, 0, len - 2); // - 2 cuz last symbol is \0
+
+            this.openFileDialog2.InitialDirectory = Path.GetDirectoryName(path);
+            this.openFileDialog2.FileName = Path.GetFileName(path);
+            this.openFileDialog2.RestoreDirectory = true;
         }
 
         private void saveFile()
         {
+            string replayPath = Config.mainConfig.ReplayDirPath;
+            this.saveFileDialog1.InitialDirectory = replayPath;
+            this.saveFileDialog1.RestoreDirectory = true;
             this.saveFileDialog1.ShowDialog();
         }
 
@@ -604,7 +625,8 @@ namespace osuReplayEditor
 
         private void exportAsosrToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            this.saveFileDialog1.ShowDialog();
+
+            this.saveFile();
         }
 
         private void saveFileDialog1_FileOk(object sender, System.ComponentModel.CancelEventArgs e)
@@ -729,7 +751,19 @@ namespace osuReplayEditor
                 currentHitObjectLabel.Text = getKindString(kind);
                 if (isMiss)
                 {
-                    hitObjectErrorLabel.Text = (kind == 3 || kind == 4) ? "Sliderbreak (Miss)" : "Miss";
+                    switch (kind)
+                    {
+                        case 3:
+                            hitObjectErrorLabel.Text = "Sliderbreak (Miss)";
+                            break;
+                        case 4:
+                            hitObjectErrorLabel.Text = "SliderEnd Skip";
+                            break;
+                        default:
+                            hitObjectErrorLabel.Text = "Miss";
+                            break;
+                    }
+                    
                 }
                 else
                 {
@@ -879,6 +913,91 @@ namespace osuReplayEditor
                 analyzeAccuracy(true);
             }
 #endif
+        }
+
+        private void drawFramesOnTimelineCB_CheckedChanged(object sender, EventArgs e)
+        {
+            API.SetDrawFramesOnTimeline(drawFramesOnTimelineCB.Checked);
+        }
+
+        private void moveFrameForwardBtn_Click(object sender, EventArgs e)
+        {
+            API.MoveFrames(1);
+        }
+
+        private void moveFrameBackBtn_Click(object sender, EventArgs e)
+        {
+            API.MoveFrames(-1);
+        }
+
+        private void centerCurrentFrameBtn_Click(object sender, EventArgs e)
+        {
+            API.CenterFrames();
+        }
+
+        private void addFrameBtn_Click(object sender, EventArgs e)
+        {
+            API.AddFrame();
+        }
+
+        private void deleteFrameBtn_Click(object sender, EventArgs e)
+        {
+            API.DeleteFrames();
+        }
+
+        private void toKeyboardBtn_Click(object sender, EventArgs e)
+        {
+            API.DeviceMarkAllFrames(true);
+        }
+
+        private void openFileDialog2_FileOk(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            string fullPath = this.openFileDialog2.FileName;
+
+            string directory = Path.GetFileName(Path.GetDirectoryName(fullPath));
+            string fileName = Path.GetFileName(fullPath);
+
+            string relativePath = directory + '/' + fileName;
+
+            bool result = API.ChangeHashOfBeatmap(relativePath);
+            if(result)
+            {
+                saveFile();
+            }
+            else
+            {
+                MessageBox.Show("Can't find the hash of the map. Try closing osu!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void changeReplaysBeatmapToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            openFileDialog2.ShowDialog();
+        }
+
+        private void scaleFramesBar_Scroll(object sender, EventArgs e)
+        {
+
+        }
+
+        private void MainForm_MouseDown(object sender, MouseEventArgs e)
+        {
+            this.ActiveControl = null;
+        }
+
+        private void scaleFramesBtn_Click(object sender, EventArgs e)
+        {
+            API.ScaleFrames((float)this.scaleFramesUd.Value);
+        }
+
+        private void drawHitWindowsCB_CheckedChanged(object sender, EventArgs e)
+        {
+            API.SetDrawHitWindows(drawHitWindowsCB.Checked);
+        }
+
+        private void drawSliderendRangeCB_CheckedChanged(object sender, EventArgs e)
+        {
+            API.SetDrawSliderendRange(drawSliderendRangeCB.Checked);
         }
     }
 }

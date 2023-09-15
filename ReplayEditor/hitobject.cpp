@@ -8,6 +8,7 @@
 #include "beatmapengine.hpp"
 #include "replayengine.hpp"
 #include "texture.hpp"
+#include "ui.hpp"
 
 #define MIN_SONG_TIME INT32_MIN
 
@@ -99,7 +100,7 @@ hitobject_t::hitobject_t(const glm::vec2 &my_pos, SongTime_t my_start, SongTime_
 {
 }
 
-void hitobject_t::draw_bg(SongTime_t ms) const
+void hitobject_t::draw_bg(SongTime_t ms, bool draw_sliderend_range) const
 {
     switch (hitobject_type) {
         case HitObjectType::Circle:
@@ -107,12 +108,12 @@ void hitobject_t::draw_bg(SongTime_t ms) const
             const float o = opacity(start, end, ms);
             glm::vec2 size = glm::vec2(beatmapengine::circleradius() * 2.0f);
             if (slider) {
-                slider->draw(ms, start, end, o);
+                slider->draw(ms, start, end, o, draw_sliderend_range);
                 glColor4f(1.0f, 1.0f, 1.0f, o);
-                if (beatmapengine::hitobjects_inverted)
+                /*if (beatmapengine::hitobjects_inverted)
                     textures::hitcircle->draw(invert_vec(slider->end_pos()), size * 0.5f, size);
                 else
-                    textures::hitcircle->draw(slider->end_pos(), size * 0.5f, size);
+                    textures::hitcircle->draw(slider->end_pos(), size * 0.5f, size);*/
             }
             glColor4f(1.0f, 1.0f, 1.0f, o);
             if (beatmapengine::hitobjects_inverted)
@@ -159,7 +160,48 @@ void hitobject_t::draw_fg(SongTime_t ms) const
                 textures::slidertick->draw(pos, size * 0.5f, size);
             break;
         }
+        case HitObjectType::SliderEnd: {
+            glm::vec2 size = glm::vec2(beatmapengine::circleradius() * 2.0f);
+            glColor4f(0.0f, 1.0f, 1.0f, o);
+            if (beatmapengine::hitobjects_inverted)
+                textures::slideredge->draw(invert_vec(pos), size * 0.5f, size);
+            else
+                textures::slideredge->draw(pos, size * 0.5f, size);
+            break;
+        }
     }
+    glBegin(GL_LINES);
+    glVertex2f(0, 0);
+    glVertex2f(1, 1);
+    glEnd();
+}
+
+void _draw_window(SongTime_t object_time, SongTime_t current_time, SongTime_t window)
+{
+    constexpr float bar_top_y = -0.95f;
+    constexpr float bar_height = 0.05f;
+
+    glBegin(GL_QUADS);
+    const float xpos1 = 2.f * RATIO(object_time - current_time - window, ui::trail_length) + 1.f;
+    const float xpos2 = 2.f * RATIO(object_time - current_time + window, ui::trail_length) + 1.f;
+    glVertex2f(xpos1, bar_top_y - bar_height / 8);
+    glVertex2f(xpos1, bar_top_y + bar_height / 8);
+    glVertex2f(xpos2, bar_top_y + bar_height / 8);
+    glVertex2f(xpos2, bar_top_y - bar_height / 8);
+    glEnd();
+}
+
+void hitobject_t::draw_window(SongTime_t ms, SongTime_t window) const
+{
+    
+
+    switch (hitobject_type) {
+        case HitObjectType::Circle:
+        case HitObjectType::Slider:
+            _draw_window(this->start, ms, window);
+    }
+    
+    
 }
 
 void hitobject_t::destroy()

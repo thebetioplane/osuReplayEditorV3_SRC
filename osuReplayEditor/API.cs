@@ -59,6 +59,24 @@ namespace osuReplayEditor
         public static extern void MouseWheel(float x, float y, bool isUp);
 
         /// <summary>
+        /// sets the setting to draw frames on the timeline as white half-lines
+        /// </summary>
+        [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern void SetDrawFramesOnTimeline(bool value);
+
+        /// <summary>
+        /// sets the setting to hitwindows on the timeline
+        /// </summary>
+        [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern void SetDrawHitWindows(bool value);
+
+        /// <summary>
+        /// sets the setting to draw range of sliderend assuming player didn't left the sliderball range before
+        /// </summary>
+        [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern void SetDrawSliderendRange(bool value);
+
+        /// <summary>
         /// draw the beatmap and cursor data (expects openGL context to be made)
         /// </summary>
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
@@ -120,8 +138,11 @@ namespace osuReplayEditor
         /// jumps ahead or behind the current position
         /// </summary>
         /// <param name="ms">time in miliseconds relative to the current position in the song</param>
+        //[DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
+        //public static extern void RelJump(int ms);
+
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern void RelJump(int ms);
+        public static extern void RelJump(double ms);
 
         /// <summary>
         /// changes the volume of the audio engine
@@ -155,8 +176,11 @@ namespace osuReplayEditor
         /// gets the current position in the song
         /// </summary>
         /// <returns>time in ms from the beginning of the song</returns>
+        //[DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
+        //public static extern int GetTime();
+
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern int GetTime();
+        public static extern double GetTime();
 
         /// <summary>
         /// changes the cursor display
@@ -250,6 +274,27 @@ namespace osuReplayEditor
         /// <returns>true if success, false if not (perhaps due to no valid selection)</returns>
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
         public static extern bool SetFrameKeyPress(int mask);
+
+        [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool MoveFrames(int ms);
+
+        [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool CenterFrames();
+
+        [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool ScaleFrames(float scale);
+
+        [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool AddFrame(int ms = 0);
+
+        [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool DeleteFrames();
+
+        [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern bool DeviceMarkAllFrames(bool isKeyboard);
+
+        [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern void GetMapPath(byte[] buf, ref int len);
 
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Unicode)]
         public static extern bool LoadSave(string saveFileName);
@@ -412,5 +457,8 @@ namespace osuReplayEditor
 
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
         public static extern int CfgGetCursorMode();
+
+        [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Unicode)]
+        public static extern bool ChangeHashOfBeatmap(string path);
     }
 }

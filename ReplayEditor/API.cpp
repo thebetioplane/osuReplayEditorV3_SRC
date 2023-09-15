@@ -79,6 +79,23 @@ void return_a_string(BYTE *out_str, INT *out_len, std::string_view s)
     }
 }
 
+void return_a_string(BYTE *out_str, INT *out_len, std::wstring_view s)
+{
+
+    if (out_str == nullptr) {
+        *out_len = static_cast<int>(s.size() * 2);
+        return;
+    }
+    *out_len = std::min(*out_len, static_cast<int>(s.size() * 2));
+    int wchar_count = *out_len / 2;
+    for (int i = 0; i < wchar_count; ++i) {
+        wchar_t curr_wchar = s[i];
+        char* byte_array = (char*)&curr_wchar;  // transform wchar_t into byte array of two bytes
+        out_str[2 * i] = static_cast<BYTE>(byte_array[0]);
+        out_str[2 * i + 1] = static_cast<BYTE>(byte_array[1]);
+    }
+}
+
 void set_a_string(const wchar_t *in_str, INT in_len, std::string &s)
 {
     s.resize(in_len);
@@ -149,6 +166,17 @@ DLLFUN(BOOL) Cleanup()
     return TRUE;
 }
 
+DLLFUN(void) GetMapPath(BYTE *out_str, INT *len)
+{
+    std::wstring result = config::song_path + beatmapengine::path;
+
+    std::size_t pos = result.find(L"/");
+    if (pos == std::string::npos) return;
+    result.replace(pos, 1, L"\\");
+
+    return_a_string(out_str, len, result);
+}
+
 DLLFUN(BOOL) LoadReplay(const wchar_t *fname)
 {
     using ::replayengine::Replay;
@@ -162,6 +190,7 @@ DLLFUN(BOOL) LoadReplay(const wchar_t *fname)
         not_fatal("You do not have this beatmap. Information about the hit objects cannot be loaded.");
     }
     {
+        beatmapengine::path = osu_path;
         const std::vector<ReplayFrame> &frames = replayengine::CurrentView()->frames();
         SongTime_t start = 0;
         SongTime_t end = 1;
@@ -179,6 +208,24 @@ DLLFUN(BOOL) LoadReplay(const wchar_t *fname)
     audioengine::handle->set_playback_speed(1.0f);
     return TRUE;
 }
+
+DLLFUN(BOOL) ChangeHashOfBeatmap(const wchar_t *fname)
+{
+    using ::replayengine::Replay;
+    std::wstring filename(fname);
+    filename.push_back('\0');
+    std::string hash;
+    bool result = osudb::get_hash(filename, hash);
+    if (!result)
+    {
+        osudb::init();
+        result = osudb::get_hash(filename, hash);
+    }
+    if (!result) return FALSE;
+    replayengine::MutableCurrentView()->mut_metadata().beatmap_hash = hash;
+    return TRUE;
+}
+
 
 DLLFUN(void) OnResize(int width, int height)
 {
@@ -227,14 +274,31 @@ DLLFUN(void) MouseWheel(float x, float y, BOOL isUp)
     ui::mouse_wheel(v, isUp);
 }
 
+DLLFUN(void) SetDrawFramesOnTimeline(BOOL value)
+{
+    ui::draw_frames_on_timeline = value;
+}
+
+DLLFUN(void) SetDrawHitWindows(BOOL value)
+{
+    ui::draw_hitwindows_on_timeline = value;
+}
+
+DLLFUN(void) SetDrawSliderendRange(BOOL value)
+{
+    ui::draw_sliderend_range = value;
+}
+
 DLLFUN(void) Render()
 {
     zoom_pan.set_projection();
     glClear(GL_COLOR_BUFFER_BIT);
-    const SongTime_t t = audioengine::handle->get_time();
-    beatmapengine::draw(t);
+    const double t = audioengine::handle->get_time();
+    beatmapengine::draw(t, ui::draw_sliderend_range);
     replayengine::MutableCurrentView()->draw(t);
     ui::draw(t);
+    if (ui::draw_hitwindows_on_timeline) beatmapengine::draw_windows(t);
+    if (ui::draw_frames_on_timeline) ui::draw_frame_lines(t);
     wglSwapLayerBuffers(graphics_handle.hdc, WGL_SWAP_MAIN_PLANE);
 }
 
@@ -278,7 +342,7 @@ DLLFUN(void) JumpTo(SongTime_t ms)
     audioengine::handle->jump_to(ms);
 }
 
-DLLFUN(void) RelJump(SongTime_t ms)
+DLLFUN(void) RelJump(double ms)
 {
     audioengine::handle->rel_jump(ms);
 }
@@ -303,7 +367,7 @@ DLLFUN(float) GetPlaybackSpeed()
     return audioengine::handle->get_playback_speed();
 }
 
-DLLFUN(SongTime_t) GetTime()
+DLLFUN(double) GetTime()
 {
     return audioengine::handle->get_time();
 }
@@ -461,6 +525,64 @@ DLLFUN(BOOL) SetFrameKeyPress(int mask)
     } else {
         return FALSE;
     }
+}
+
+DLLFUN(BOOL) MoveFrames(int ms)
+{
+    using ::replayengine::Replay;
+    if (replayengine::CurrentView()->are_in_out_marks_consistent()) {
+        return replayengine::MutateCurrentView([ms](Replay &replay) { return replay.move_frames_range(ms); });
+    } else
+        return false;
+}
+
+DLLFUN(BOOL) DeleteFrames()
+{
+    using ::replayengine::Replay;
+    if (replayengine::CurrentView()->are_in_out_marks_consistent()) {
+        return replayengine::MutateCurrentView([](Replay &replay) { return replay.delete_frames_range(); });
+    } else
+        return false;
+}
+
+DLLFUN(BOOL) CenterFrames()
+{
+    using ::replayengine::Replay;
+    
+    if (replayengine::CurrentView()->are_in_out_marks_consistent()) {
+        return replayengine::MutateCurrentView([](Replay &replay) { return replay.center_frames_range(); });
+    } else
+        return false;
+}
+
+DLLFUN(BOOL) ScaleFrames(float scale)
+{
+    using ::replayengine::Replay;
+    if (replayengine::CurrentView()->are_in_out_marks_consistent()) {
+        return replayengine::MutateCurrentView([scale](Replay &replay) { return replay.scale_frames(scale); });
+    } else
+        return false;
+}
+
+DLLFUN(BOOL) AddFrame(int ms)
+{
+    using ::replayengine::Replay;
+
+    if (ms <= 0) 
+        return replayengine::MutateCurrentView([](Replay &replay) { return replay.insert_new_frame_between(); });
+    else
+        return replayengine::MutateCurrentView([ms](Replay &replay) { return replay.insert_new_frame(ms); });
+
+}
+
+DLLFUN(BOOL) DeviceMarkAllFrames(BOOL isKeyboard)
+{
+    using ::replayengine::Replay;
+
+    return replayengine::MutateCurrentView([isKeyboard](Replay &replay) {
+        replay.mark_all_frames(isKeyboard);
+        return true;
+    });
 }
 
 DLLFUN(BOOL) LoadSave(const wchar_t *saveFileName)

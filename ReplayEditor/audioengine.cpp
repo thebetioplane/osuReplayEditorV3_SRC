@@ -30,13 +30,13 @@ class BassAudioEngine : public AudioEngine
     bool is_playing() override;
     bool is_paused() override;
     bool is_stopped() override;
-    void jump_to(SongTime_t ms) override;
-    void rel_jump(SongTime_t ms) override;
+    void jump_to(double ms) override;
+    void rel_jump(double ms) override;
     void set_volume(float) override;
     float get_volume() override;
     void set_playback_speed(float) override;
     float get_playback_speed() override;
-    SongTime_t get_time() override;
+    double get_time() override;
 
    private:
     HSTREAM stream = 0;
@@ -59,13 +59,13 @@ class FakeAudioEngine : public AudioEngine
     bool is_playing() override;
     bool is_paused() override;
     bool is_stopped() override;
-    void jump_to(SongTime_t ms) override;
-    void rel_jump(SongTime_t ms) override;
+    void jump_to(double ms) override;
+    void rel_jump(double ms) override;
     void set_volume(float) override;
     float get_volume() override;
     void set_playback_speed(float) override;
     float get_playback_speed() override;
-    SongTime_t get_time() override;
+    double get_time() override;
 
    private:
     SongTime_t m_current_time = 0;
@@ -189,19 +189,20 @@ bool BassAudioEngine::is_stopped()
     return status == StreamStatus::Stopped;
 }
 
-void BassAudioEngine::jump_to(SongTime_t ms)
+void BassAudioEngine::jump_to(double ms)
 {
     if (stream) {
         if (ms < 0) ms = 0;
-        const QWORD byte_pos = BASS_ChannelSeconds2Bytes(stream, static_cast<double>(ms / 1000.0));
+        const QWORD byte_pos = BASS_ChannelSeconds2Bytes(stream, ms / 1000.0);
         BASS_ChannelSetPosition(stream, byte_pos, BASS_POS_BYTE);
     }
 }
 
-void BassAudioEngine::rel_jump(SongTime_t ms)
+void BassAudioEngine::rel_jump(double ms)
 {
     jump_to(get_time() + ms);
 }
+
 
 void BassAudioEngine::set_volume(float value)
 {
@@ -230,12 +231,12 @@ float BassAudioEngine::get_playback_speed()
     return speed;
 }
 
-SongTime_t BassAudioEngine::get_time()
+double BassAudioEngine::get_time()
 {
     if (stream) {
         const QWORD byte_pos = BASS_ChannelGetPosition(stream, BASS_POS_BYTE);
         const double ms = BASS_ChannelBytes2Seconds(stream, byte_pos);
-        return static_cast<SongTime_t>(ms * 1000. + 0.5);
+        return ms * 1000.0;
     } else {
         return 0;
     }
@@ -280,7 +281,7 @@ bool FakeAudioEngine::is_stopped()
     return m_status == StreamStatus::Stopped;
 }
 
-void FakeAudioEngine::jump_to(SongTime_t ms)
+void FakeAudioEngine::jump_to(double ms)
 {
     if (ms < m_start_time) {
         m_current_time = m_start_time;
@@ -291,7 +292,7 @@ void FakeAudioEngine::jump_to(SongTime_t ms)
     }
 }
 
-void FakeAudioEngine::rel_jump(SongTime_t ms)
+void FakeAudioEngine::rel_jump(double ms)
 {
     jump_to(get_time() + ms);
 }
@@ -316,7 +317,7 @@ float FakeAudioEngine::get_playback_speed()
     return m_speed;
 }
 
-SongTime_t FakeAudioEngine::get_time()
+double FakeAudioEngine::get_time()
 {
     return m_current_time;
 }

@@ -48,6 +48,14 @@ struct ReplayFrame {
     {
         return keys & 16;
     }
+
+    ReplayFrame()
+    {
+    }
+
+    ReplayFrame(SongTime_t _ms, float x, float y, int _keys) : p(x, y), ms(_ms), keys(_keys)
+    {
+    }
 };
 
 struct ReplayMetadata {
@@ -108,6 +116,20 @@ class Replay
     void place_mark_all();
     void clear_marks();
     void place_marks_at(I64 mark_in, I64 mark_out);
+
+    bool insert_new_frame(SongTime_t time);
+    bool insert_new_frame_between();
+    bool delete_frames_range();
+
+    bool move_frame(SongTime_t time = 1);
+    bool move_frames_range(SongTime_t time = 1);
+
+    bool center_frame();
+    bool center_frames_range();
+
+    bool scale_frames(float scale);
+
+    void mark_all_frames(bool is_keyboard);
 
     const ReplayMetadata &metadata() const
     {

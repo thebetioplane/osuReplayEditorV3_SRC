@@ -62,6 +62,7 @@ static inline std::ostream &operator<<(std::ostream &o, const std::wstring &s)
 }
 
 #define IS_PRESSED(prevm1, prevm2, currm1, currm2) (!(prevm1) && (currm1) || (!(prevm2) && (currm2)))
+#define IS_PRESSED_INT(prevm1, prevm2, currm1, currm2) ((!(prevm1) && (currm1)) + ((!(prevm2) && (currm2))))
 #define IS_RELEASE(prevm1, prevm2, currm1, currm2) ((prevm1) || (prevm2)) && (!(currm1) && !(currm2));
 
 #define glColorWhite() glColor3f(1.0f, 1.0f, 1.0f)
