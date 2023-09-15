@@ -490,7 +490,6 @@ void beatmapengine::draw_windows(SongTime_t ms)
     if (start == hitobjects.end()) return;
     if (end != hitobjects.end()) ++end;
 
-    // glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
     glDisable(GL_TEXTURE_2D);

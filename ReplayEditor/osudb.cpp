@@ -32,6 +32,8 @@ bool init()
         fatal("osu!.db not found");
         return false;
     }
+    beatmaps.clear();
+    beatmaps_reverse.clear();
     int32_t version;
     r >> version;
     // folder count (4)

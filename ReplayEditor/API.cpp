@@ -207,6 +207,11 @@ DLLFUN(BOOL) ChangeHashOfBeatmap(const wchar_t *fname)
     filename.push_back('\0');
     std::string hash;
     bool result = osudb::get_hash(filename, hash);
+    if (!result)
+    {
+        osudb::init();
+        result = osudb::get_hash(filename, hash);
+    }
     if (!result) return FALSE;
     replayengine::MutableCurrentView()->mut_metadata().beatmap_hash = hash;
     return TRUE;
@@ -328,11 +333,6 @@ DLLFUN(void) JumpTo(SongTime_t ms)
     audioengine::handle->jump_to(ms);
 }
 
-//DLLFUN(void) RelJump(SongTime_t ms)
-//{
-//    audioengine::handle->rel_jump(ms);
-//}
-
 DLLFUN(void) RelJump(double ms)
 {
     audioengine::handle->rel_jump(ms);
@@ -357,11 +357,6 @@ DLLFUN(float) GetPlaybackSpeed()
 {
     return audioengine::handle->get_playback_speed();
 }
-
-//DLLFUN(SongTime_t) GetTime()
-//{
-//    return audioengine::handle->get_time();
-//}
 
 DLLFUN(double) GetTime()
 {

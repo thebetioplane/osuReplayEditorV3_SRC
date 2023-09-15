@@ -589,6 +589,9 @@ namespace osuReplayEditor
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            string replayPath = Config.mainConfig.ReplayDirPath;
+            this.openFileDialog1.InitialDirectory = replayPath;
+            this.openFileDialog1.RestoreDirectory = true;
             this.openFileDialog1.ShowDialog();
         }
 
@@ -609,6 +612,9 @@ namespace osuReplayEditor
 
         private void saveFile()
         {
+            string replayPath = Config.mainConfig.ReplayDirPath;
+            this.saveFileDialog1.InitialDirectory = replayPath;
+            this.saveFileDialog1.RestoreDirectory = true;
             this.saveFileDialog1.ShowDialog();
         }
 
@@ -619,7 +625,8 @@ namespace osuReplayEditor
 
         private void exportAsosrToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            this.saveFileDialog1.ShowDialog();
+
+            this.saveFile();
         }
 
         private void saveFileDialog1_FileOk(object sender, System.ComponentModel.CancelEventArgs e)
@@ -957,6 +964,10 @@ namespace osuReplayEditor
             {
                 System.Threading.Thread.Sleep(500);
                 saveFile();
+            }
+            else
+            {
+                MessageBox.Show("Can't find the hash of the map. Try closing osu!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 

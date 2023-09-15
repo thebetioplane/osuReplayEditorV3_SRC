@@ -110,7 +110,7 @@ void accuracy_analyzer::analyze(Stats* stats, bool do_trace)
                 continue;
             }
 
-            double interpolation = double(curr_obj.start - prev_frame.ms) / (curr_frame.ms - prev_frame.ms);
+            float interpolation = float(curr_obj.start - prev_frame.ms) / (curr_frame.ms - prev_frame.ms);
             glm::vec2 frame_pos = glm::mix(prev_frame.p, curr_frame.p, interpolation);
             glm::vec2 hitobj_pos = curr_obj.pos;
             if (beatmapengine::hitobjects_inverted) hitobj_pos.y = 384.f - hitobj_pos.y;
@@ -129,22 +129,9 @@ void accuracy_analyzer::analyze(Stats* stats, bool do_trace)
                 curr_obj.is_miss = true;
             }
             ++hitobject_index;
-        } else if (is_press) {
-            if (curr_obj.hitobject_type == HitObjectType::Spinner) {
-                if (do_trace)
-                    log << "Press: Object #" << hitobject_index << "; Frame #" << replayframe_index
-                        << "; Spinner skipped" << std::endl;
-                // spinners right now count as perfect
-                curr_obj.is_miss = false;
-                curr_obj.hit_error = 0;
-                ++hitobject_index;
-                continue;
-            }
-            if (curr_frame.ms < curr_obj.animation_start()) {
-                // if it is not on screen then ignore this hit
-                ++replayframe_index;
-                continue;
-            }
+        } 
+        else
+        {
             if (curr_frame.ms > curr_obj.start + window50) {
                 if (do_trace)
                     log << "Press: Object #" << hitobject_index << "; Frame #" << replayframe_index
@@ -153,41 +140,25 @@ void accuracy_analyzer::analyze(Stats* stats, bool do_trace)
                 ++hitobject_index;
                 continue;
             }
-            glm::vec2 hitobj_pos = curr_obj.pos;
-            if (beatmapengine::hitobjects_inverted) hitobj_pos.y = 384.f - hitobj_pos.y;
-            if (glm::distance(hitobj_pos, curr_frame.p) > radius) {
-                if (do_trace)
-                    log << "Press: Object #" << hitobject_index << "; Frame #" << replayframe_index
-                        << "; Ignore - missed hitcircle" << std::endl;
-                // if this hit misses the circle then ignore it
-                ++replayframe_index;
-                continue;
-            }
-            // we have a hit
-            int error = curr_frame.ms - curr_obj.start;
-            if (std::abs(error) <= window50) {
-                if (do_trace)
-                    log << "Press: Object #" << hitobject_index << "; Frame #" << replayframe_index << "; Hit ("
-                        << error << " ms)" << std::endl;
-                curr_obj.is_miss = false;
-                curr_obj.hit_error = error;
-            }
-            ++hitobject_index;
 
-            //if doubletapped
-            if (is_press == 2)
-            {
-                if (hitobject_index == beatmapengine::hitobjects.size()) continue;
-
-                auto& next_obj = beatmapengine::hitobjects[hitobject_index];
-
-                if (curr_frame.ms < next_obj.animation_start()) {
+            if (is_press) {
+                if (curr_obj.hitobject_type == HitObjectType::Spinner) {
+                    if (do_trace)
+                        log << "Press: Object #" << hitobject_index << "; Frame #" << replayframe_index
+                            << "; Spinner skipped" << std::endl;
+                    // spinners right now count as perfect
+                    curr_obj.is_miss = false;
+                    curr_obj.hit_error = 0;
+                    ++hitobject_index;
+                    continue;
+                }
+                if (curr_frame.ms < curr_obj.animation_start()) {
                     // if it is not on screen then ignore this hit
                     ++replayframe_index;
                     continue;
                 }
 
-                glm::vec2 hitobj_pos = next_obj.pos;
+                glm::vec2 hitobj_pos = curr_obj.pos;
                 if (beatmapengine::hitobjects_inverted) hitobj_pos.y = 384.f - hitobj_pos.y;
                 if (glm::distance(hitobj_pos, curr_frame.p) > radius) {
                     if (do_trace)
@@ -197,19 +168,55 @@ void accuracy_analyzer::analyze(Stats* stats, bool do_trace)
                     ++replayframe_index;
                     continue;
                 }
-
-                error = curr_frame.ms - next_obj.start;
+                // we have a hit
+                int error = curr_frame.ms - curr_obj.start;
                 if (std::abs(error) <= window50) {
                     if (do_trace)
                         log << "Press: Object #" << hitobject_index << "; Frame #" << replayframe_index << "; Hit ("
                             << error << " ms)" << std::endl;
-                    next_obj.is_miss = false;
-                    next_obj.hit_error = error;
+                    curr_obj.is_miss = false;
+                    curr_obj.hit_error = error;
                 }
                 ++hitobject_index;
+
+                // if doubletapped
+                if (is_press == 2) {
+                    if (hitobject_index == beatmapengine::hitobjects.size()) continue;
+
+                    auto& next_obj = beatmapengine::hitobjects[hitobject_index];
+
+                    if (curr_frame.ms < next_obj.animation_start()) {
+                        // if it is not on screen then ignore this hit
+                        ++replayframe_index;
+                        continue;
+                    }
+
+                    glm::vec2 hitobj_pos = next_obj.pos;
+                    if (beatmapengine::hitobjects_inverted) hitobj_pos.y = 384.f - hitobj_pos.y;
+                    if (glm::distance(hitobj_pos, curr_frame.p) > radius) {
+                        if (do_trace)
+                            log << "Press: Object #" << hitobject_index << "; Frame #" << replayframe_index
+                                << "; Ignore - missed hitcircle" << std::endl;
+                        // if this hit misses the circle then ignore it
+                        ++replayframe_index;
+                        continue;
+                    }
+
+                    error = curr_frame.ms - next_obj.start;
+                    if (std::abs(error) <= window50) {
+                        if (do_trace)
+                            log << "Press: Object #" << hitobject_index << "; Frame #" << replayframe_index << "; Hit ("
+                                << error << " ms)" << std::endl;
+                        next_obj.is_miss = false;
+                        next_obj.hit_error = error;
+                    }
+                    ++hitobject_index;
+                }
             }
+            ++replayframe_index;
         }
-        ++replayframe_index;
+
+        
     }
     if (stats == nullptr) return;
     Averager<int> avg_all, avg_neg, avg_pos;
