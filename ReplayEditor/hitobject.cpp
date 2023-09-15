@@ -16,8 +16,6 @@
 #define KIND_IS_SLIDER (kind & 2)
 #define KIND_IS_SPINNER (kind & 8)
 
-#define RATIO(a, b) (static_cast<float>(a) / static_cast<float>(b))
-
 static float approach(const SongTime_t start, const SongTime_t ms)
 {
     const SongTime_t pre = beatmapengine::preempt();

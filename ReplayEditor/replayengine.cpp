@@ -579,7 +579,7 @@ bool Replay::center_frames_range()
         if (difference < size) return 0;
 
         int i = 1;
-        double base = (double)difference / (size + 1);
+        double base = static_cast<double>(difference) / (size + 1);
 
         for (auto frame = m_frames.begin() + m_mark_in + 1; frame != m_frames.begin() + m_mark_out + 1; ++frame) {
             frame->ms = m_frames[m_mark_in].ms + base * i;
@@ -591,7 +591,7 @@ bool Replay::center_frames_range()
         if (difference < size) return 0;
 
         int i = 1;
-        double base = (double)difference / (size + 1);
+        double base = static_cast<double>(difference) / (size + 1);
 
         for (auto frame = m_frames.begin() + m_mark_in; frame != m_frames.begin() + m_mark_out; ++frame) {
             frame->ms = m_frames[m_mark_in - 1].ms + base * i;
@@ -604,7 +604,7 @@ bool Replay::center_frames_range()
         if (difference < size) return 0;
 
         int i = 1;
-        double base = (double)difference / (size + 1);
+        double base = static_cast<double>(difference) / (size + 1);
 
         for (auto frame = m_frames.begin() + m_mark_in; frame != m_frames.begin() + m_mark_out + 1; ++frame) {
             frame->ms = m_frames[m_mark_in - 1].ms + base * i;
@@ -620,13 +620,13 @@ bool Replay::scale_frames(float scale)
     if (m_mark_out != m_frames.size() - 1) {
         SongTime_t initial_delta = m_frames[m_mark_out].ms - m_frames[m_mark_in].ms;
         SongTime_t max_delta = m_frames[m_mark_out + 1].ms - m_frames[m_mark_in].ms - 1;
-        float maximum_scale = double(max_delta) / initial_delta;
+        float maximum_scale = static_cast<float>(max_delta) / initial_delta;
         scale = std::min(scale, maximum_scale);
     }
 
     for (auto frame = m_frames.begin() + m_mark_in + 1; frame != m_frames.begin() + m_mark_out + 1; ++frame) {
         SongTime_t difference = frame->ms - m_frames[m_mark_in].ms;
-        difference = std::round((double)difference * scale);
+        difference = std::round(static_cast<double>(difference) * scale);
         frame->ms = std::max(m_frames[m_mark_in].ms + 1, m_frames[m_mark_in].ms + difference);
     }
 

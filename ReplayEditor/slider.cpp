@@ -359,7 +359,7 @@ void slider_t::draw(SongTime_t ms, SongTime_t start, SongTime_t end, float opaci
     glm::vec2 slider_ball_pos{0.f, 0.f};
     draw_slider_ball = ball_position_at_time(ms, start, end, slider_ball_pos);
 
-    SongTime_t true_slider_end_time = std::max(float(end - last_tick_offset), end - duration() / 2);
+    SongTime_t true_slider_end_time = std::max(static_cast<float>(end - last_tick_offset), end - duration() / 2);
     glm::vec2 true_slider_end_pos{0.f, 0.f};
     auto true_slider_end_size = size * 2.4f;
 

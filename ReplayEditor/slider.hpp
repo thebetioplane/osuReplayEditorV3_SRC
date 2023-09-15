@@ -10,10 +10,6 @@
 struct pos_time_t {
     glm::vec2 pos;
     SongTime_t time;
-
-    pos_time_t(glm::vec2 pos_, SongTime_t time_) : pos(pos_), time(time_)
-    {
-    }
 };
 
 class slider_t
