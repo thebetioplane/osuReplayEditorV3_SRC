@@ -599,11 +599,11 @@ namespace osuReplayEditor
         {
             this.LoadReplay(this.openFileDialog1.FileName);
 
-            IntPtr ptr = API.GetMapPath();
-            if (ptr == null) return;
-
-            string path = Marshal.PtrToStringUni(ptr);
-            API.FreeBuffer(ptr);
+            int len = 0;
+            API.GetMapPath(null, ref len);
+            byte[] buf = new byte[len];
+            API.GetMapPath(buf, ref len);
+            string path = System.Text.Encoding.Unicode.GetString(buf, 0, len - 2); // - 2 cuz last symbol is \0
 
             this.openFileDialog2.InitialDirectory = Path.GetDirectoryName(path);
             this.openFileDialog2.FileName = Path.GetFileName(path);

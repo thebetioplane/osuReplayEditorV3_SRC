@@ -79,6 +79,23 @@ void return_a_string(BYTE *out_str, INT *out_len, std::string_view s)
     }
 }
 
+void return_a_string(BYTE *out_str, INT *out_len, std::wstring_view s)
+{
+
+    if (out_str == nullptr) {
+        *out_len = static_cast<int>(s.size() * 2);
+        return;
+    }
+    *out_len = std::min(*out_len, static_cast<int>(s.size() * 2));
+    int wchar_count = *out_len / 2;
+    for (int i = 0; i < wchar_count; ++i) {
+        wchar_t curr_wchar = s[i];
+        char* byte_array = (char*)&curr_wchar;  // transform wchar_t into byte array of two bytes
+        out_str[2 * i] = static_cast<BYTE>(byte_array[0]);
+        out_str[2 * i + 1] = static_cast<BYTE>(byte_array[1]);
+    }
+}
+
 void set_a_string(const wchar_t *in_str, INT in_len, std::string &s)
 {
     s.resize(in_len);
@@ -149,23 +166,15 @@ DLLFUN(BOOL) Cleanup()
     return TRUE;
 }
 
-DLLFUN(wchar_t *) GetMapPath()
+DLLFUN(void) GetMapPath(BYTE *out_str, INT *len)
 {
     std::wstring result = config::song_path + beatmapengine::path;
 
     std::size_t pos = result.find(L"/");
-    if (pos == std::string::npos) return nullptr;
+    if (pos == std::string::npos) return;
     result.replace(pos, 1, L"\\");
 
-    size_t size = result.size() + 1;
-    wchar_t *ptr = new wchar_t[size];
-    wcscpy_s(ptr, size, result.c_str());
-    return ptr;
-}
-
-DLLFUN(void) FreeBuffer(void* buffer)
-{
-    delete[] buffer;
+    return_a_string(out_str, len, result);
 }
 
 DLLFUN(BOOL) LoadReplay(const wchar_t *fname)

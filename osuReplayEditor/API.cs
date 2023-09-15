@@ -294,10 +294,7 @@ namespace osuReplayEditor
         public static extern bool DeviceMarkAllFrames(bool isKeyboard);
 
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern IntPtr GetMapPath();
-
-        [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
-        public static extern void FreeBuffer(IntPtr ptr);
+        public static extern void GetMapPath(byte[] buf, ref int len);
 
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Unicode)]
         public static extern bool LoadSave(string saveFileName);
