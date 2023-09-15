@@ -962,7 +962,6 @@ namespace osuReplayEditor
             bool result = API.ChangeHashOfBeatmap(relativePath);
             if(result)
             {
-                System.Threading.Thread.Sleep(500);
                 saveFile();
             }
             else
