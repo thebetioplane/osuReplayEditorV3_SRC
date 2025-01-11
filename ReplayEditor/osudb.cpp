@@ -86,8 +86,13 @@ bool init()
             r >> count;
             CHECK_IF_READER_CLOSED(r);
             for (int j = 0; j < count; ++j) {
-                // star rating (14)
-                r += 14;
+                if (version >= 20250108) {
+                    // star rating (10)
+                    r += 10;
+                } else {
+                    // star rating (14)
+                    r += 14;
+                }
                 CHECK_IF_READER_CLOSED(r);
             }
         }
