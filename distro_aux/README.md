@@ -16,7 +16,7 @@ x64: [vc_redist.x64.exe](https://aka.ms/vs/16/release/vc_redist.x64.exe)
 
 # Download
 
-You can find all the downloads on the [releases page](https://github.com/thebetioplane/osuReplayEditorV3/releases)
+You can find all the downloads on the [tags page](https://github.com/thebetioplane/osuReplayEditorV3/tags)
 
 Or use this direct link to .zip file: https://github.com/thebetioplane/osuReplayEditorV3/archive/beta.zip
 
