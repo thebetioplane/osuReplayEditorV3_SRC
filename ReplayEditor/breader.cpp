@@ -106,6 +106,8 @@ breader_t &breader_t::operator>>(std::string &value)
 void breader_t::operator+=(int amt)
 {
     file.seekg(amt, std::ios_base::cur);
+    // To set failbit / badbit / eofbit as seekg allows seeking past end of file.
+    file.peek();
 }
 
 void breader_t::fill_buf(void *buf, int count)
@@ -118,5 +120,5 @@ void breader_t::dummy_string()
     const uint8_t b = read_byte();
     if (b != 0x0b) return;
     const uint32_t len = read_uleb128();
-    file.seekg(len, std::ios_base::cur);
+    operator+=(len);
 }
