@@ -78,6 +78,7 @@ class Replay
     class ReplayFrameSelection
     {
        public:
+        ReplayFrameSelection() = default;
         ReplayFrameSelection(ReplayFrame *data, I64 mark_in, I64 mark_out)
             : m_begin(data + mark_in), m_end(data + mark_out + 1)
         {
@@ -89,6 +90,14 @@ class Replay
         ReplayFrame *end()
         {
             return m_end;
+        }
+        size_t size() const
+        {
+            return m_end - m_begin;
+        }
+        bool empty() const
+        {
+            return size() == 0;
         }
 
        private:

@@ -13,7 +13,6 @@ namespace Builder
 #endif
         static readonly string OUTPUT_DIR;
         static readonly string DISTRO_DIR;
-        static readonly string BUILD_LABEL;
 
         static Program()
         {
@@ -25,7 +24,6 @@ namespace Builder
 #endif
             OUTPUT_DIR = Path.Combine(SLN_DIR, @"build_output\");
             DISTRO_DIR = Path.Combine(SLN_DIR, @"distro\");
-            BUILD_LABEL = "Test";
         }
 
         static int Main(string[] args)

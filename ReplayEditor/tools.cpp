@@ -235,7 +235,7 @@ bool GrabTool::ApplyMutation(replayengine::Replay* replay)
     const glm::vec2& c = replay->mark_out_frame().p;
     replayengine::MutableCurrentView()->mut_frames()[mark_mid].p = m_frame_buf[mark_mid].p + (m_v1 - m_v0);
     DoWeighting(replay, a, b, mark_in + 1, mark_mid, false);
-    DoWeighting(replay, c, b, mark_mid + 1, mark_out, true);
+    DoWeighting(replay, c, b, mark_mid + 1, mark_out + 1, true);
     return true;
 }
 

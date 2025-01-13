@@ -649,9 +649,22 @@ namespace osuReplayEditor
             API.ZoomOut();
         }
 
+        private bool UserWantsToExit()
+        {
+            var result = MessageBox.Show(this, "Are you sure you want to exit?\nAll unsaved changes will be lost.", "Confirm Exit", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+            return result == DialogResult.Yes;
+        }
+
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            API.Cleanup();
+            if (UserWantsToExit())
+            {
+                API.Cleanup();
+            }
+            else
+            {
+                e.Cancel = true;
+            }
         }
 
         private void updateTimestampCB_CheckedChanged(object sender, EventArgs e)
@@ -879,6 +892,16 @@ namespace osuReplayEditor
                 analyzeAccuracy(true);
             }
 #endif
+        }
+
+        private void relaxRecalculateAllHitsBtn_Click(object sender, EventArgs e)
+        {
+            API.RelaxRecalculateAllHits();
+        }
+
+        private void relaxRecalculateHitsSelectionBtn_Click(object sender, EventArgs e)
+        {
+            API.RelaxRecalculateHitsInSelection();
         }
     }
 }

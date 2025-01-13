@@ -396,6 +396,12 @@ namespace osuReplayEditor
         public static extern void SetBrushRadius(int brushRadius);
 
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern void RelaxRecalculateAllHits();
+
+        [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
+        public static extern void RelaxRecalculateHitsInSelection();
+
+        [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]
         public static extern void CfgSetUpdateTimeStampOnExit(int value);
 
         [DllImport("ReplayEditor.dll", CallingConvention = CallingConvention.StdCall)]

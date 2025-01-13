@@ -10,6 +10,7 @@
 #include "beatmapengine.hpp"
 #include "config.hpp"
 #include "osudb.hpp"
+#include "relax.hpp"
 #include "replayengine.hpp"
 #include "texture.hpp"
 #include "thirdparty/glm/glm.hpp"
@@ -741,4 +742,14 @@ DLLFUN(void) SetTool(INT tool)
 DLLFUN(void) SetBrushRadius(INT brush_radius)
 {
     tool::brush_radius = static_cast<float>(brush_radius);
+}
+
+DLLFUN(void) RelaxRecalculateAllHits()
+{
+    relax::recalculate_all_hits();
+}
+
+DLLFUN(void) RelaxRecalculateHitsInSelection()
+{
+    relax::recalculate_hits_in_selection();
 }

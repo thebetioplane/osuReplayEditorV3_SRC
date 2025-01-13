@@ -128,6 +128,9 @@ namespace osuReplayEditor
             this.timelineControl = new osuReplayEditor.TimelineControl();
             this.canvas = new osuReplayEditor.Canvas();
             this.isKeyboard = new System.Windows.Forms.CheckBox();
+            this.relaxRecalculateAllHitsBtn = new System.Windows.Forms.Button();
+            this.label16 = new System.Windows.Forms.Label();
+            this.relaxRecalculateHitsSelectionBtn = new System.Windows.Forms.Button();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.volumeBar)).BeginInit();
             this.playbackSpeedPanel.SuspendLayout();
@@ -241,21 +244,21 @@ namespace osuReplayEditor
             // githubToolStripMenuItem1
             // 
             this.githubToolStripMenuItem1.Name = "githubToolStripMenuItem1";
-            this.githubToolStripMenuItem1.Size = new System.Drawing.Size(180, 22);
+            this.githubToolStripMenuItem1.Size = new System.Drawing.Size(172, 22);
             this.githubToolStripMenuItem1.Text = "Github";
             this.githubToolStripMenuItem1.Click += new System.EventHandler(this.githubToolStripMenuItem1_Click);
             // 
             // keybindReferenceToolStripMenuItem
             // 
             this.keybindReferenceToolStripMenuItem.Name = "keybindReferenceToolStripMenuItem";
-            this.keybindReferenceToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.keybindReferenceToolStripMenuItem.Size = new System.Drawing.Size(172, 22);
             this.keybindReferenceToolStripMenuItem.Text = "Keybind Reference";
             this.keybindReferenceToolStripMenuItem.Click += new System.EventHandler(this.keybindReferenceToolStripMenuItem_Click);
             // 
             // analyzeAccTraceToolStripMenuItem
             // 
             this.analyzeAccTraceToolStripMenuItem.Name = "analyzeAccTraceToolStripMenuItem";
-            this.analyzeAccTraceToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.analyzeAccTraceToolStripMenuItem.Size = new System.Drawing.Size(172, 22);
             this.analyzeAccTraceToolStripMenuItem.Text = "Analyze Acc Trace";
             this.analyzeAccTraceToolStripMenuItem.Click += new System.EventHandler(this.analyzeAccTraceToolStripMenuItem_Click);
             // 
@@ -1195,6 +1198,37 @@ namespace osuReplayEditor
             this.isKeyboard.TabIndex = 80;
             this.isKeyboard.Text = "Is Keyboard";
             this.isKeyboard.UseVisualStyleBackColor = true;
+            // relaxRecalculateAllHitsBtn
+            // 
+            this.relaxRecalculateAllHitsBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.relaxRecalculateAllHitsBtn.Location = new System.Drawing.Point(765, 501);
+            this.relaxRecalculateAllHitsBtn.Name = "relaxRecalculateAllHitsBtn";
+            this.relaxRecalculateAllHitsBtn.Size = new System.Drawing.Size(156, 23);
+            this.relaxRecalculateAllHitsBtn.TabIndex = 75;
+            this.relaxRecalculateAllHitsBtn.Text = "Recalculate All Hits";
+            this.relaxRecalculateAllHitsBtn.UseVisualStyleBackColor = true;
+            this.relaxRecalculateAllHitsBtn.Click += new System.EventHandler(this.relaxRecalculateAllHitsBtn_Click);
+            // 
+            // label16
+            // 
+            this.label16.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.label16.AutoSize = true;
+            this.label16.Location = new System.Drawing.Point(815, 485);
+            this.label16.Name = "label16";
+            this.label16.Size = new System.Drawing.Size(64, 13);
+            this.label16.TabIndex = 76;
+            this.label16.Text = "Relax Mode";
+            // 
+            // relaxRecalculateHitsSelectionBtn
+            // 
+            this.relaxRecalculateHitsSelectionBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.relaxRecalculateHitsSelectionBtn.Location = new System.Drawing.Point(765, 530);
+            this.relaxRecalculateHitsSelectionBtn.Name = "relaxRecalculateHitsSelectionBtn";
+            this.relaxRecalculateHitsSelectionBtn.Size = new System.Drawing.Size(156, 23);
+            this.relaxRecalculateHitsSelectionBtn.TabIndex = 77;
+            this.relaxRecalculateHitsSelectionBtn.Text = "Recalculate Hits In Selection";
+            this.relaxRecalculateHitsSelectionBtn.UseVisualStyleBackColor = true;
+            this.relaxRecalculateHitsSelectionBtn.Click += new System.EventHandler(this.relaxRecalculateHitsSelectionBtn_Click);
             // 
             // MainForm
             // 
@@ -1203,6 +1237,9 @@ namespace osuReplayEditor
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1184, 661);
             this.Controls.Add(this.isKeyboard);
+            this.Controls.Add(this.relaxRecalculateHitsSelectionBtn);
+            this.Controls.Add(this.label16);
+            this.Controls.Add(this.relaxRecalculateAllHitsBtn);
             this.Controls.Add(this.currentHitObjectLabel);
             this.Controls.Add(this.nextObjectBtn);
             this.Controls.Add(this.hitObjectPointsLabel);
@@ -1398,6 +1435,9 @@ namespace osuReplayEditor
         private System.Windows.Forms.Label currentHitObjectLabel;
         private System.Windows.Forms.ToolStripMenuItem configToolStripMenuItem;
         private System.Windows.Forms.CheckBox isKeyboard;
+        private System.Windows.Forms.Button relaxRecalculateAllHitsBtn;
+        private System.Windows.Forms.Label label16;
+        private System.Windows.Forms.Button relaxRecalculateHitsSelectionBtn;
     }
 }
 

@@ -69,6 +69,9 @@
     <ClInclude Include="history_stack.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="relax.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -123,6 +126,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="tools.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="relax.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

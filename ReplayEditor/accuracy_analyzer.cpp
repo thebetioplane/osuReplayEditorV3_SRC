@@ -40,6 +40,7 @@ void accuracy_analyzer::analyze(Stats* stats, bool do_trace)
     const SongTime_t window50 = beatmapengine::hitwindow50();
     const SongTime_t window100 = beatmapengine::hitwindow100();
     const SongTime_t window300 = beatmapengine::hitwindow300();
+    const std::vector<replayengine::ReplayFrame>& frames = replayengine::CurrentView()->frames();
     if (do_trace) {
         log << "++++++++++++++++++++++++++++++++" << std::endl;
         log << "Circle radius = " << radius << std::endl;
@@ -47,7 +48,7 @@ void accuracy_analyzer::analyze(Stats* stats, bool do_trace)
         log << "Window100 = " << window100 << std::endl;
         log << "Window300 = " << window300 << std::endl;
         log << "Number of hitobjects = " << beatmapengine::hitobjects.size() << std::endl;
-        log << "Number of replay frames = " << replayengine::CurrentView()->frames().size() << std::endl;
+        log << "Number of replay frames = " << frames.size() << std::endl;
         log << "++++++++++++++++++++++++++++++++" << std::endl;
         log << "SldTk means slider tick; bitmap is prev frame pressed, curr frame pressed, inside slider ball"
             << std::endl;
@@ -55,13 +56,12 @@ void accuracy_analyzer::analyze(Stats* stats, bool do_trace)
     }
     size_t replayframe_index = 1;
     size_t hitobject_index = 0;
-    for (size_t i = 0; i < beatmapengine::hitobjects.size(); ++i) {
-        beatmapengine::hitobjects[i].is_miss = true;
+    for (auto& obj : beatmapengine::hitobjects) {
+        obj.is_miss = (obj.hitobject_type != HitObjectType::Spinner);
     }
-    while (replayframe_index < replayengine::CurrentView()->frames().size() &&
-           hitobject_index < beatmapengine::hitobjects.size()) {
-        const auto& curr_frame = replayengine::CurrentView()->frames()[replayframe_index];
-        const auto& prev_frame = replayengine::CurrentView()->frames()[replayframe_index - 1];
+    while (replayframe_index < frames.size() && hitobject_index < beatmapengine::hitobjects.size()) {
+        const auto& curr_frame = frames[replayframe_index];
+        const auto& prev_frame = frames[replayframe_index - 1];
         const bool is_press = IS_PRESSED(prev_frame.pressed_mouse1(), prev_frame.pressed_mouse2(),
                                          curr_frame.pressed_mouse1(), curr_frame.pressed_mouse2());
         auto& curr_obj = beatmapengine::hitobjects[hitobject_index];
@@ -165,8 +165,12 @@ void accuracy_analyzer::analyze(Stats* stats, bool do_trace)
     for (const auto& obj : beatmapengine::hitobjects) {
         if (!obj.is_miss) variance.add(std::pow(obj.hit_error - avg, 2.f));
     }
-    stats->accuracy =
-        100.f * RATIO(stats->num_50 + 2 * stats->num_100 + 6 * stats->num_300, 6 * beatmapengine::hitobjects.size());
+    if (beatmapengine::hitobjects.empty()) {
+        stats->accuracy = 0.f;
+    } else {
+        stats->accuracy = 100.f * RATIO(stats->num_50 + 2 * stats->num_100 + 6 * stats->num_300,
+                                        6 * beatmapengine::hitobjects.size());
+    }
     stats->avg_early = avg_neg.avg();
     stats->avg_late = avg_pos.avg();
     stats->unstable_rate = 10.f * std::sqrt(variance.avg());
