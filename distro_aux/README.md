@@ -4,16 +4,6 @@ The continuation of the replayEditorV2. Old software did not work properly, this
 
 Requires 64 bit Windows.
 
-Requires Microsoft Visual C++ Redistributable 2015-2019
-
-https://support.microsoft.com/en-us/topic/the-latest-supported-visual-c-downloads-2647da03-1eea-4433-9aff-95f26a218cc0
-
-Download both if you don't already have:
-
-x86: [vc_redist.x86.exe](https://aka.ms/vs/16/release/vc_redist.x86.exe)
-
-x64: [vc_redist.x64.exe](https://aka.ms/vs/16/release/vc_redist.x64.exe)
-
 # Download
 
 You can find all the downloads on the [tags page](https://github.com/thebetioplane/osuReplayEditorV3/tags)
