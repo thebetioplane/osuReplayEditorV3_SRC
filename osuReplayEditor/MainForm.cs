@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using System.IO;
 
@@ -20,6 +21,8 @@ namespace osuReplayEditor
         private float scrubMult = 1.0f;
         private bool ctrlKeyDown = false;
         private int selectedHitObject = -1;
+        private readonly Button scoreV2Button;
+        private readonly Label scoreV2Label;
 
         private bool visualMapInvert = false;
         private float originalAR = 0.0f;
@@ -41,6 +44,26 @@ namespace osuReplayEditor
         public MainForm()
         {
             InitializeComponent();
+            this.scoreV2Button = new Button
+            {
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                Enabled = false,
+                Location = new System.Drawing.Point(1080, 182),
+                Name = "scoreV2Button",
+                Size = new System.Drawing.Size(96, 23),
+                Text = "Score V2"
+            };
+            this.scoreV2Button.Click += scoreV2Button_Click;
+            this.Controls.Add(this.scoreV2Button);
+            this.scoreV2Label = new Label
+            {
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                AutoSize = true,
+                Location = new System.Drawing.Point(1080, 211),
+                Name = "scoreV2Label",
+                Text = "?"
+            };
+            this.Controls.Add(this.scoreV2Label);
             this.MetadataEditorForm = new MetadataEditor.MetadataEditorForm();
             this.ConfigEditorForm = new ConfigEditor.ConfigEditorForm();
             this.ConfigEditorForm.Standalone = false;
@@ -150,8 +173,11 @@ namespace osuReplayEditor
 
         private void LoadReplay(string fname)
         {
+            this.scoreV2Button.Enabled = false;
+            this.scoreV2Label.Text = "?";
             if (API.LoadReplay(fname))
             {
+                this.scoreV2Button.Enabled = true;
                 API.Pause();
                 this.songMin = API.GetReplayStartMs();
                 this.songMax = API.GetReplayEndMs();
@@ -728,6 +754,25 @@ namespace osuReplayEditor
         private void analyzeAccBtn_Click(object sender, EventArgs e)
         {
             analyzeAccuracy(false);
+        }
+
+        private void scoreV2Button_Click(object sender, EventArgs e)
+        {
+            analyzeAccuracy(false);
+            var objectScores = new List<int>();
+            for (int index = 0; ; ++index)
+            {
+                int kind = -1;
+                bool isMiss = false;
+                int hitError = 0;
+                int points = 0;
+                if (!API.GetHitInfo(index, ref kind, ref isMiss, ref hitError, ref points))
+                    break;
+                objectScores.Add(points);
+            }
+
+            long score = ScoreV2Calculator.EstimateScore(objectScores, API.Replay_GetMods());
+            this.scoreV2Label.Text = score.ToString("N0");
         }
 
         private void setHitObjectInfo(int index, int kind, bool isMiss, int hitError, int points)
