@@ -87,6 +87,7 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ScoreV2Calculator.cs" />
     <Compile Include="TimelineControl.cs">
       <SubType>Component</SubType>
     </Compile>
